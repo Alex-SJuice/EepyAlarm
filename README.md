@@ -54,4 +54,15 @@ A surprising amount went into the first version of the program. Here's just a fe
 	- this involved the ... (variable number of function arguments) and stdarg.h
 - keeping track of when to ring by storing the last time it rang in the config file
 
-AI was not used to generate any code. It was, however, used for research and debugging.
+AI was not used to generate any code.
+
+## Credits
+Man, can I say *The C Programming Language* is an amazing book?
+It has like everything you need to write in C, except examples for some functions.
+I only occasionally needed to google certain things, the rest was all in the book.
+
+Shout outs to Kernighan and Ritchie for making C
+
+W3Schools and Geeks for Geeks for some IO examples
+
+AI (Gemini & Deepseek) for research into the windows API and debugging.

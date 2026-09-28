@@ -1,6 +1,7 @@
 # EepyAlarm
 
 An alarm for your computer that helps you sleep earlier.
+
 For people who always seem to be doing something on their computer late into the night, and want to fix their sleep schedule
 (like me, this is so totally me like I'm writing this readme at 12AM right now)
 
@@ -15,7 +16,8 @@ Thank you to Stardance for enabling this project!
 ## How to use it
 
 go to the latest release, download the program, and run it.
-On initial setup, you input 
+
+On initial setup, you input,
 - the time you would like to sleep at
 - the current time you sleep at
 - by how much you want to go towards that goal
@@ -47,9 +49,9 @@ Once set, the alarm will stay running in the background and automatically trigge
 
 A surprising amount went into the first version of the program. Here's just a few of the highlights:
 - using while loops to gracefully handle bad inputs during initialization
- - omg it took so long to figure out that you neet to fflush(stdout) or else user input doesn't work.
+	- omg it took so long to figure out that you neet to fflush(stdout) or else user input doesn't work.
 - recreating printf so that it prints to a new console window, while also supporting format strings i.e. "I am %d years old"
- - this involved the ... (variable number of function arguments) and stdarg.h
+	- this involved the ... (variable number of function arguments) and stdarg.h
 - keeping track of when to ring by storing the last time it rang in the config file
 
 AI was not used to generate any code. It was, however, used for research and debugging.

@@ -31,6 +31,8 @@ It will create a configuration file at C:/Users/current_user/EepyAlarm and store
 
 Once set, the alarm will stay running in the background and automatically trigger a little earlier every day until you reach your target!
 
+To reset the settings, just run the executable with any kind of input argument. Anything will do.
+
 ## Features
 
 1.0:

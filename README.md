@@ -9,7 +9,7 @@ Thank you to Stardance and Hackclub for enabling this project!
 
 <img src=assets\V2_GIF.gif />
 
-[LATEST RELEASE](https://github.com/Alex-SJuice/EepyAlarm/releases/tag/v1.0.0)
+[LATEST RELEASE](https://github.com/Alex-SJuice/EepyAlarm/releases/tag/v2.0.0)
 
 ***!EepyAlarm is only available for WINDOWS at the moment!***
 

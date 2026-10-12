@@ -4,13 +4,84 @@
 #include <errno.h>
 #include <string.h>
 #include <time.h>
+#include <limits.h>
+#include <math.h>
 
 #include "raylib.h"
 #include "rendering.h"
 #include "variables.h"
 
 void alarm() {
-	printWindow("Go to bed!");
+	InitWindow(500, 500, "ALARM!");
+	ToggleFullscreen();
+    HideCursor();
+
+    Image icon = LoadImage("icon.png");
+    SetWindowIcon(icon);
+
+
+    Vector2 origin = { 0.0f, 0.0f };
+    Rectangle rect = { GetScreenWidth() / 2 - 300, GetScreenHeight() - 620, 600.0f, 600.0f };
+    Texture2D orph = LoadTextureFromImage(icon);
+    NPatchInfo patchInfo = { (Rectangle){ 0.0f, 0.0f, 512.0f, 512.0f }, 0, 0, 0, 0, NPATCH_NINE_PATCH };
+
+    SetTargetFPS(60);
+
+    while (!WindowShouldClose() || GetTime() < 12.0f) {
+    	if(!IsWindowFocused()) {
+			SetWindowFocused();
+		}
+
+		time(&current_time_t);
+		double t = GetTime();
+		struct tm current_time_tm = *localtime(&current_time_t);
+
+		rect.width = 	600.0f * (cos(t / 1.0f) / 30.0f + 1.0f);
+		rect.height = 	600.0f * (-cos(t / 1.0f) / 30.0f + 1.0f);
+		rect.x = 		(GetScreenWidth() / 2 - 300) - (rect.width - 600.0f) / 2;
+		rect.y = 		(GetScreenHeight() - 620) - (rect.height - 600.0f) / 2;
+
+		double alpha = t * 255.0f / 4.0f;
+		char a1;
+		char a2;
+		char a3;
+		if(alpha > 255.0f) {
+			a1 = 255;
+		} else {
+			a1 = (char)alpha;			
+		}
+		if(alpha - 255.0f > 255.0f) {
+			a2 = 255;
+		} else if(alpha - 255.0f < 0.0f) {
+			a2 = 0;
+		} else {
+			a2 = (char)(alpha - 255.0f);
+		}
+		if(alpha - 510.0f > 255.0f) {
+			a3 = 255;
+		} else if(alpha - 510.0f < 0.0f) {
+			a3 = 0;
+		} else {
+			a3 = (char)(alpha - 510.0f);
+		}
+
+		char message[32];
+		snprintf(message, sizeof(message), "It's %d:%d.", current_time_tm.tm_hour, current_time_tm.tm_min);
+
+		BeginDrawing();
+			ClearBackground(BLACK);
+			DrawText(message, GetScreenWidth() / 2 - MeasureText(message, 100) / 2, 100, 100, (Color){ 255, 255, 255, a1 });
+			DrawText("Go to bed.", GetScreenWidth() / 2 - MeasureText("Go to bed.", 100) / 2, 200, 100, (Color){ 255, 255, 255, a2 });
+			DrawText("Press ESC to close.", GetScreenWidth() / 2 - MeasureText("Press ESC to close", 50) / 2, 300, 50, (Color){ 255, 255, 255, a3 });
+
+			DrawTextureNPatch(orph, patchInfo, rect, origin, 0.0f, WHITE);
+		EndDrawing();
+    }
+
+    ToggleFullscreen();
+    UnloadImage(icon);
+    UnloadTexture(orph);
+	CloseWindow();
 }
 
 void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
@@ -34,7 +105,7 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
     	inputs[4] = (86400 - trigger_interval) / 60;
 
     	for(int i = 0; i < 5; i++) {
-	    	buffer_position[i] = sprintf(input_buffer[i], "%d", inputs[i]);
+	    	buffer_position[i] = snprintf(input_buffer[i], sizeof(input_buffer[i]), "%d", inputs[i]);
 	    	for(int j = buffer_position[i]; j < 16; j++) {
 	    		input_buffer[i][j] = '\0';
 	    	}
@@ -176,9 +247,9 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 	fwrite(&trigger_interval, sizeof(double), 1, config_ptr);
 	fwrite(&target_time, sizeof(time_hr), 1, config_ptr);
 
-	char s[256];
-	snprintf(s, sizeof(s), "%d:%d, %d:%d, %f", current_time_tm.tm_hour, current_time_tm.tm_min, target_time.tm_hour, target_time.tm_min, trigger_interval);
-	printWindow(s);
+	// char s[256];
+	// snprintf(s, sizeof(s), "%d:%d, %d:%d, %f", current_time_tm.tm_hour, current_time_tm.tm_min, target_time.tm_hour, target_time.tm_min, trigger_interval);
+	// printWindow(s);
 }
 
 void printWindow(char* str) {

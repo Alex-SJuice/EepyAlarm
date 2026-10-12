@@ -5,9 +5,9 @@ An alarm for your computer that helps you sleep earlier.
 For people who always seem to be doing something on their computer late into the night, and want to fix their sleep schedule
 (like me, this is so totally me like I'm writing this readme at 12AM right now)
 
-Thank you to Stardance for enabling this project!
+Thank you to Stardance and Hackclub for enabling this project!
 
-<img src=assets\V1_GIF.gif />
+<img src=assets\V2_GIF.gif />
 
 [LATEST RELEASE](https://github.com/Alex-SJuice/EepyAlarm/releases/tag/v1.0.0)
 
@@ -15,7 +15,8 @@ Thank you to Stardance for enabling this project!
 
 ## How to use it
 
-go to the latest release, download the program, and run it.
+go to the latest release, download the installer, and run it.
+Once installed, the settings menu should open automatically.
 
 On initial setup, you input,
 - the time you would like to sleep at
@@ -28,10 +29,11 @@ for example,
 - I would like to improve by 1 minute every day
 
 It will create a configuration file at C:/Users/current_user/AppData/Local/EepyAlarm and store everything there.
+Make sure it says "Saved!" before you close the settings window!
 
 Once set, the alarm will stay running in the background and automatically trigger a little earlier every day until you reach your target!
 
-To edit the settings, stop any instance of the program first. Then just run the executable, and the settings menu will open.
+To edit the settings, stop any instance of the program first via task manager. Then just run the program, and the settings menu will open.
 
 ## Features
 
@@ -41,7 +43,7 @@ To edit the settings, stop any instance of the program first. Then just run the 
 - user input based initialization
 - text based alarm
 
-2.0 (potential):
+2.0:
 - installer
 - automatic start on system boot
 - GUI for setup
@@ -52,16 +54,11 @@ To edit the settings, stop any instance of the program first. Then just run the 
 - notification tray icon
 - nicer setup GUI
 - custom, user generated alarms
+- better font
 - kill previous instance instead of failing to launch
 
 3.1 (potential):
 - support for Linux
-
-3.2 (potential):
-- support for MacOs
-
-3.3 (potential):
-- Android port
 
 ## How it works / Technical details
 
@@ -72,7 +69,14 @@ A surprising amount went into the first version of the program. Here's just a fe
 	- this involved the ... (variable number of function arguments) and stdarg.h
 - keeping track of when to ring by storing the last time it rang in the config file
 
-AI was not used to generate any code. However it has been used for debugging and reseach (mostly the WinAPI)
+Version 2 really ramped up the complexity:
+- using raylib + a state machine to make inputing numbers smooth and intuitive
+	- C not intitializing arrays is kinda annoying...
+- working around the WinAPI to get the path to AppData
+- spliting up the program into multiple files for better organization
+	- but I had to be careful with variables shared across files
+
+AI was not used to generate any code. However it has been used for debugging and research (mostly the WinAPI)
 
 ## Credits
 Man, can I say *The C Programming Language* is an amazing book?
@@ -85,3 +89,5 @@ Shout outs to Kernighan and Ritchie for making C
 W3Schools and Geeks for Geeks for some IO examples
 
 AI (Gemini & Deepseek) for research into the windows API and debugging.
+
+And to Hackclub for all of the motivation (and free loot)

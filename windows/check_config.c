@@ -27,13 +27,18 @@ void main() {
 	PWSTR userdata = NULL;
 	if(SHGetKnownFolderPath(&FOLDERID_LocalAppData, 0, NULL, &userdata) < 0) {
 		printf("Can't get path to config");
+		getchar();
 		exit(1);
 	}
 
 	_snwprintf(config_path, sizeof(config_path), L"%ls\\EepyAlarm\\config.bin", userdata);
 	printf("%ls\n", config_path);
 
-	config_ptr = _wfopen(config_path, L"rb");
+	if((config_ptr = _wfopen(config_path, L"rb")) == NULL) {
+		printf("Can't open config file");
+		getchar();
+		exit(1);
+	}
 
 	fread(&last_increment, sizeof(time_t), 1, config_ptr);
 	fread(&trigger_interval, sizeof(double), 1, config_ptr);

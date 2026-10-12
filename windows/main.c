@@ -32,12 +32,6 @@ wchar_t config_path[MAX_PATH];
 void initializeConfig();
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
-	//initialize icon
-	WNDCLASSEX wc;
-	wc.cbSize  = sizeof(WNDCLASSEX);
-	wc.hIcon   = LoadIcon(hInstance, MAKEINTRESOURCE(MAINICON));
-	wc.hIconSm = LoadIcon(hInstance, MAKEINTRESOURCE(MAINICON));
-
 	CreateMutex(NULL, false, "EepyAlarmMutex");
 
 	if(GetLastError() == ERROR_ALREADY_EXISTS) {
@@ -52,12 +46,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		time(&current_time_t);
 
 		if(difftime(current_time_t, last_increment) < trigger_interval) {
-			struct tm current_time_tm = *localtime(&current_time_t);
-			struct tm li = *localtime(&last_increment);
+			// struct tm current_time_tm = *localtime(&current_time_t);
+			// struct tm li = *localtime(&last_increment);
 
-			char s[64];
-			snprintf(s, sizeof(s), "%d:%d, %d:%d, %f ", current_time_tm.tm_hour, current_time_tm.tm_min, li.tm_hour, li.tm_min, difftime(current_time_t, last_increment));
-			printWindow(s);
+			// char s[64];
+			// snprintf(s, sizeof(s), "%d:%d, %d:%d, %f ", current_time_tm.tm_hour, current_time_tm.tm_min, li.tm_hour, li.tm_min, difftime(current_time_t, last_increment));
+			// printWindow(s);
 			continue;
 		}
 

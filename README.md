@@ -23,15 +23,15 @@ On initial setup, you input,
 - by how much you want to go towards that goal
 
 for example,
-- I sleep at 1AM right now
 - I would like to sleep at 11PM
+- I sleep at 1AM right now
 - I would like to improve by 1 minute every day
 
-It will create a configuration file at C:/Users/current_user/EepyAlarm and store everything there.
+It will create a configuration file at C:/Users/current_user/AppData/Local/EepyAlarm and store everything there.
 
 Once set, the alarm will stay running in the background and automatically trigger a little earlier every day until you reach your target!
 
-To reset the settings, just run the executable with any kind of input argument. Anything will do.
+To edit the settings, stop any instance of the program first. Then just run the executable, and the settings menu will open.
 
 ## Features
 
@@ -46,6 +46,22 @@ To reset the settings, just run the executable with any kind of input argument. 
 - automatic start on system boot
 - GUI for setup
 - nicer looking alarm
+- Icons!
+
+3.0 (potential):
+- notification tray icon
+- nicer setup GUI
+- custom, user generated alarms
+- kill previous instance instead of failing to launch
+
+3.1 (potential):
+- support for Linux
+
+3.2 (potential):
+- support for MacOs
+
+3.3 (potential):
+- Android port
 
 ## How it works / Technical details
 
@@ -56,12 +72,13 @@ A surprising amount went into the first version of the program. Here's just a fe
 	- this involved the ... (variable number of function arguments) and stdarg.h
 - keeping track of when to ring by storing the last time it rang in the config file
 
-AI was not used to generate any code.
+AI was not used to generate any code. However it has been used for debugging and reseach (mostly the WinAPI)
 
 ## Credits
 Man, can I say *The C Programming Language* is an amazing book?
 It has like everything you need to write in C, except examples for some functions.
-I only occasionally needed to google certain things, the rest was all in the book.
+I only occasionally needed to google certain things like new features in modern standards of C (there aren't many)
+The rest was all in the book.
 
 Shout outs to Kernighan and Ritchie for making C
 

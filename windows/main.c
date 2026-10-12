@@ -1,17 +1,22 @@
-//gcc main.c -o EepyAlarm.exe -IC:\raylib\w64devkit\include -LC:\raylib\w64devkit\lib -lraylib -lopengl32 -lgdi32 -lwinmm -mwindows
-#include "raylib.h"
+//gcc main.c rendering.c resource.o -o EepyAlarm.exe -IC:\raylib\w64devkit\include -LC:\raylib\w64devkit\lib -lraylib -lopengl32 -lgdi32 -lwinmm -lole32 -mwindows
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <errno.h>
 #include <time.h>
-#include <Windows.h>
 #include <direct.h>
 
-typedef struct {
-	int tm_hour;
-	int tm_min;
-} time_hr;
+
+#include <shlobj.h>
+#include <combaseapi.h>
+#include <windows.h>
+#define MAINICON 1
+
+#define INITGUID
+#include <knownfolders.h>
+
+#include "rendering.h"
+#include "variables.h"
 
 
 time_t current_time_t;
@@ -21,237 +26,114 @@ time_t last_increment;
 double trigger_interval;
 
 FILE* config_ptr;
+wchar_t config_path[MAX_PATH];
 
-void printConsole(char *fmt, ...);
 
-void editConfigFile(char* config_path);
+void initializeConfig();
 
-int main(int argc) {
-	time(&current_time_t);
-	char* userdata = getenv("USERPROFILE");
-	char config_path[256];
-	sprintf(config_path, "%s\\EepyAlarm\\config.bin", userdata);
-	
-	if((config_ptr = fopen(config_path, "rb+")) == NULL) {
-		if(errno != ENOENT && errno != 0) {
-			printConsole("Can't open configuration file: %s, %d", strerror(errno), errno);
-			exit(1);
-		}
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
+	//initialize icon
+	WNDCLASSEX wc;
+	wc.cbSize  = sizeof(WNDCLASSEX);
+	wc.hIcon   = LoadIcon(hInstance, MAKEINTRESOURCE(MAINICON));
+	wc.hIconSm = LoadIcon(hInstance, MAKEINTRESOURCE(MAINICON));
 
-		char folder_path[256];
-		sprintf(folder_path, "%s\\EepyAlarm", userdata);
-		if(_mkdir(folder_path) != 0 && errno != EEXIST) {
-			printConsole("Can't make new folder: %s, %d", strerror(errno), errno);
-			exit(1);
-		}
+	CreateMutex(NULL, false, "EepyAlarmMutex");
 
-		editConfigFile(config_path, false);
-	} else {
-		fread(&last_increment, sizeof(time_t), 1, config_ptr);
-		fread(&trigger_interval, sizeof(double), 1, config_ptr);
-		fread(&target_time, sizeof(time_hr), 1, config_ptr);
-
-		editConfigFile(config_path, true);
+	if(GetLastError() == ERROR_ALREADY_EXISTS) {
+		printWindow("EepyAlarm is already running!");
+		exit(0);
 	}
 
-	fclose(config_ptr);
-	printConsole("PID: %d", GetCurrentProcessId());
+	initializeConfig();
 
 	while(1) {
+		Sleep(30000);
 		time(&current_time_t);
-		if(difftime(current_time_t, last_increment) > trigger_interval) {
-			struct tm local = *localtime(&last_increment);
-			if(local.tm_hour == target_time.tm_hour && local.tm_min == target_time.tm_min) {
-				trigger_interval = 86400;
-				fseek(config_ptr, sizeof(time_t), SEEK_SET);
-				fwrite(&trigger_interval, sizeof(double), 1, config_ptr);
-				printConsole("You hit your goal!");
-			}
 
-			printConsole("Go to bed!");
-			
-			last_increment += trigger_interval;
-
-			if((config_ptr = fopen(config_path, "rb+")) == NULL) {
-				printConsole("Configuration File Error: %s, %d", strerror(errno), errno);
-				exit(1);
-			}
-			fwrite(&last_increment, sizeof(time_t), 1, config_ptr);
-
-			fclose(config_ptr);
-		}
-		else {
+		if(difftime(current_time_t, last_increment) < trigger_interval) {
 			struct tm current_time_tm = *localtime(&current_time_t);
 			struct tm li = *localtime(&last_increment);
-			printConsole("%d:%d, %d:%d, %f ", current_time_tm.tm_hour, current_time_tm.tm_min, li.tm_hour, li.tm_min, difftime(current_time_t, last_increment));
+
+			char s[64];
+			snprintf(s, sizeof(s), "%d:%d, %d:%d, %f ", current_time_tm.tm_hour, current_time_tm.tm_min, li.tm_hour, li.tm_min, difftime(current_time_t, last_increment));
+			printWindow(s);
+			continue;
 		}
-		Sleep(30000);
+
+		alarm();
+		
+		if((config_ptr = _wfopen(config_path, L"rb+")) == NULL) {
+			char s[64];
+			snprintf(s, sizeof(s), "Configuration File Error: %s, %d", strerror(errno), errno);
+			printWindow(s);
+			exit(1);
+		}
+
+		struct tm local = *localtime(&last_increment);
+		if(local.tm_hour == target_time.tm_hour && local.tm_min == target_time.tm_min) {
+			trigger_interval = 86400;
+			fseek(config_ptr, sizeof(time_t), SEEK_SET);
+			fwrite(&trigger_interval, sizeof(double), 1, config_ptr);
+			printWindow("You hit your goal!");
+		}
+
+		last_increment += trigger_interval;
+		fwrite(&last_increment, sizeof(time_t), 1, config_ptr);
+		fclose(config_ptr);	
 	}
 
 	return 0;
 }
 
-void editConfigFile(char* config_path, bool prevAvailable) {
-		if(!prevAvailable && (config_ptr = fopen(config_path, "wb")) == NULL) {
-			printConsole("Can't make new configuration file: %s, %d", strerror(errno), errno);
+
+void initializeConfig() {
+	time(&current_time_t);
+
+	PWSTR userdata = NULL;
+	if(SHGetKnownFolderPath(&FOLDERID_LocalAppData, 0, NULL, &userdata) < 0) {
+		char s[256];
+		snprintf(s, sizeof(s), "Can't get path to config");
+		printWindow(s);
+		exit(1);
+	}
+
+	_snwprintf(config_path, sizeof(config_path), L"%ls\\EepyAlarm\\config.bin", userdata);
+
+	
+	if((config_ptr = _wfopen(config_path, L"rb+")) == NULL) {
+		if(errno != ENOENT && errno != 0) {
+			char s[256];
+			snprintf(s, sizeof(s), "Can't open configuration file: %s, %d", strerror(errno), errno);
+			printWindow(s);
 			exit(1);
 		}
 
-		InitWindow(500, 500, "EepyAlarm Configuration");
-	    SetTargetFPS(60);
-
-	    int inputs[5] = {NULL};
-	    
-	    while (!WindowShouldClose()) {
-	    	if(prevAvailable) {
-	    		struct tm current_time = *localtime(last_increment);
-	    	}
-	    	
-
-	    	BeginDrawing();
-
-	    	ClearBackground(RAYWHITE);
-	    	DrawText("Target time: ", 100, 100, 20, BLACK);
-	    	DrawText("Current time: ", 100, 200, 20, BLACK);
-
-	    	if(prevAvailable) {
-	    		char num[4];
-	    		if(inputs[0] == NULL) {
-	    			sprintf(num, "Hour: %d", target_time.tm_hour);
-	    		} else {
-	    			sprintf(num, "Hour: %d", inputs[0]);
-	    		}
-	    		DrawText(num, 100, 130, 20, BLACK);
-
-	    		if(inputs[1] == NULL) {
-	    			sprintf(num, "Minute: %d", target_time.tm_min);
-	    		} else {
-	    			sprintf(num, "Minute: %d", inputs[1]);
-	    		}
-	    		DrawText(num, 100, 160, 20, BLACK);
-
-	    		if(inputs[2] == NULL) {
-	    			sprintf(num, "Hour: %d", current_time.tm_hour);
-	    		} else {
-	    			sprintf(num, "Hour: %d", inputs[2]);
-	    		}
-	    		DrawText(num, 100, 230, 20, BLACK);
-
-	    		if(inputs[3] == NULL) {
-	    			sprintf(num, "Minute: %d", current_time.tm_min);
-	    		} else {
-	    			sprintf(num, "Minute: %d", inputs[3]);
-	    		}
-	    		DrawText(num, 100, 260, 20, BLACK);
-
-	    		if(inputs[4] == NULL) {
-	    			sprintf(num, "Time increment: %d", 86400 - trigger_interval);
-	    		} else {
-	    			sprintf(num, "Time increment: %d", inputs[4]);
-	    		}
-	    		DrawText(num, 100, 300, 20, BLACK);
-	    	} else {
-	    		DrawText("Hour: ", 100, 130, 20, BLACK);
-	    		DrawText("Minute: ", 100, 160, 20, BLACK);
-	    		DrawText("Hour: ", 100, 230, 20, BLACK);
-	    		DrawText("Minute: ", 100, 260, 20, BLACK);
-	    		DrawText("Time increment: ", 100, 300, 20, BLACK);
-	    	}
-
-	    	EndDrawing();
-	    }
-	    CloseWindow();
-
-		printf("Target time (hr min): ");
-		target_time = (time_hr){ -1, -1 };
-		fflush(stdout);
-		while(target_time.tm_hour < 0 || target_time.tm_min < 0) {
-			char input[10];
-			fgets(input, sizeof(input), stdin);
-			sscanf(input, "%d %d", &target_time.tm_hour, &target_time.tm_min);
-			fflush(stdout);
+		wchar_t folder_path[256];
+		_snwprintf(folder_path, sizeof(folder_path), L"%ls\\EepyAlarm", userdata);
+		if(!CreateDirectoryW(folder_path, NULL) && GetLastError() != ERROR_ALREADY_EXISTS) {
+			char s[256];
+			snprintf(s, sizeof(s), "Can't make new folder");
+			printWindow(s);
+			exit(1);
 		}
 
-		printf("Starting time (hr min): ");
-		time_hr start_time = (time_hr){ -1, -1 };
-		fflush(stdout);
-		while(start_time.tm_hour < 0 || start_time.tm_min < 0) {
-			char input[10];
-			fgets(input, sizeof(input), stdin);
-			sscanf(input, "%d %d", &start_time.tm_hour, &start_time.tm_min);
-			fflush(stdout);
+		if((config_ptr = _wfopen(config_path, L"wb+")) == NULL) {
+			char s[256];
+			snprintf(s, sizeof(s), "Can't make new configuration file: %s, %d", strerror(errno), errno);
+			printWindow(s);
+			exit(1);
 		}
 
-		printf("Time increment (min): ");
-		int increment = -1; //seconds
-		fflush(stdout);
-		while(increment < 0) {
-			char input[10];
-			fgets(input, sizeof(input), stdin);
-			sscanf(input, "%d", &increment);
-			fflush(stdout);
-		}
+		openConfigWindow(config_path, false);
+	} else {
+		fread(&last_increment, sizeof(time_t), 1, config_ptr);
+		fread(&trigger_interval, sizeof(double), 1, config_ptr);
+		fread(&target_time, sizeof(time_hr), 1, config_ptr);
 
-		trigger_interval = 86400 - increment; //seconds
-
-		struct tm current_time_tm = *localtime(&current_time_t);
-		current_time_tm.tm_min = start_time.tm_min;
-		current_time_tm.tm_hour = start_time.tm_hour;
-		--current_time_tm.tm_mday;
-		last_increment = mktime(&current_time_tm);
-
-		fwrite(&last_increment, sizeof(time_t), 1, config_ptr);
-		fwrite(&trigger_interval, sizeof(double), 1, config_ptr);
-		fwrite(&target_time, sizeof(time_hr), 1, config_ptr);
-}
-
-void printConsole(char *fmt, ...) {
-	if(AllocConsole() == 0) {
-		return;
+		openConfigWindow(config_path, true);
 	}
-	freopen("CONOUT$", "w", stdout);
-	freopen("CONIN$", "r", stdin);
 
-	va_list ap;
-	char *p, *sval;
-	int ival;
-	double dval;
-
-	va_start(ap, fmt);
-	for(p = fmt; *p; p++) {
-		if(*p != '%') {
-			putchar(*p);
-			continue;
-		}
-		switch (*++p) {
-		case 's':
-			for(sval = va_arg(ap, char *); *sval; sval++) {
-				putchar(*sval);
-			}
-			break;
-		case 'd':
-			ival = va_arg(ap, int);
-			printf("%d", ival);
-			break;
-		case 'f':
-			dval = va_arg(ap, double);
-			printf("%f", dval);
-			break;
-		default:
-			putchar(*p);
-			break;
-		}
-	}
-	va_end(ap);
-	printf("\nPress [ENTER] to close the window. Please don't X out the window!");
-
-	fflush(stdout);
-	getchar();
-
-	fclose(stdin);
-	fclose(stdout);
-	if(FreeConsole() == 0) {
-		printf("Failed to detach! Error code: %d", GetLastError());
-		exit(1);
-	}
+	CoTaskMemFree(userdata);
+	fclose(config_ptr);
 }

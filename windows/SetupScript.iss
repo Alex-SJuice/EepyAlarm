@@ -1,6 +1,6 @@
 [Setup]
 AppName=EepyAlarm
-AppVersion=2.0
+AppVersion=2.1
 
 AppMutex=EepyAlarmMutex,Global\EepyAlarmMutex
 SetupMutex=SetupMutex,GlobalSetupMutex
@@ -25,7 +25,7 @@ Source: "icon.png";       DestDir: "{app}"
 
 [Icons]
 Name: "{group}\EepyAlarm\EepyAlarm"; Filename: "{app}\EepyAlarm.exe"; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"
-Name: "{autostartup}\EepyAlarm"; Filename: "{app}\EepyAlarm.exe"; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"
+Name: "{autostartup}\EepyAlarm"; Filename: "{app}\EepyAlarm.exe"; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"; Parameters: "c"
 
 [Run]
 Filename: "{app}\EepyAlarm.exe"; WorkingDir: "{app}"; Flags: postinstall nowait skipifsilent

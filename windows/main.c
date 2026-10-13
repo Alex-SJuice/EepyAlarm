@@ -8,6 +8,7 @@
 
 
 #include <shlobj.h>
+//#include <shellapi.h>
 #include <combaseapi.h>
 #include <windows.h>
 #define MAINICON 1
@@ -29,9 +30,12 @@ FILE* config_ptr;
 wchar_t config_path[MAX_PATH];
 
 
-void initializeConfig();
+void initializeConfig(int argc);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
+	int argc = 0;
+	CommandLineToArgvW(GetCommandLineW(), &argc);
+
 	CreateMutex(NULL, false, "EepyAlarmMutex");
 
 	if(GetLastError() == ERROR_ALREADY_EXISTS) {
@@ -39,7 +43,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		exit(0);
 	}
 
-	initializeConfig();
+	initializeConfig(argc);
 
 	while(1) {
 		Sleep(30000);
@@ -81,7 +85,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 }
 
 
-void initializeConfig() {
+void initializeConfig(int argc) {
 	time(&current_time_t);
 
 	PWSTR userdata = NULL;
@@ -95,7 +99,7 @@ void initializeConfig() {
 	_snwprintf(config_path, sizeof(config_path), L"%ls\\EepyAlarm\\config.bin", userdata);
 
 	
-	if((config_ptr = _wfopen(config_path, L"rb+")) == NULL) {
+	if((config_ptr = _wfopen(config_path, L"rb+")) == NULL || argc == 1) {
 		if(errno != ENOENT && errno != 0) {
 			char s[256];
 			snprintf(s, sizeof(s), "Can't open configuration file: %s, %d", strerror(errno), errno);
@@ -125,7 +129,7 @@ void initializeConfig() {
 		fread(&trigger_interval, sizeof(double), 1, config_ptr);
 		fread(&target_time, sizeof(time_hr), 1, config_ptr);
 
-		openConfigWindow(config_path, true);
+		//openConfigWindow(config_path, true);
 	}
 
 	CoTaskMemFree(userdata);

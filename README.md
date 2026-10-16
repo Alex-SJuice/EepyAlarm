@@ -9,7 +9,7 @@ Thank you to Stardance and Hackclub for enabling this project!
 
 <img src=assets\V2_GIF.gif />
 
-[LATEST RELEASE](https://github.com/Alex-SJuice/EepyAlarm/releases/tag/v2.1.0)
+[LATEST RELEASE](https://github.com/Alex-SJuice/EepyAlarm/releases/tag/v2.2.0)
 
 ***!EepyAlarm is only available for WINDOWS at the moment!***
 
@@ -57,7 +57,7 @@ To edit the settings, stop any instance of the program first via task manager. T
 - better font
 - kill previous instance instead of failing to launch
 
-3.1 (potential):
+4.0 (potential):
 - support for Linux
 
 ## How it works / Technical details

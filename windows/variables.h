@@ -2,6 +2,8 @@
 
 #include <minwindef.h>
 
+//#define DEBUG
+
 typedef struct {
 	int tm_hour;
 	int tm_min;

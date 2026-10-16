@@ -237,7 +237,9 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 	struct tm current_time_tm = *localtime(&current_time_t);
 	current_time_tm.tm_hour = inputs[2];
 	current_time_tm.tm_min = inputs[3];
-	//--current_time_tm.tm_mday;
+	if(difftime(mktime(&current_time_tm), current_time_t) > 0) {
+		--current_time_tm.tm_mday;
+	}
 	last_increment = mktime(&current_time_tm);
 
 	trigger_interval = 86400 - inputs[4] * 60; //seconds
@@ -247,9 +249,11 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 	fwrite(&trigger_interval, sizeof(double), 1, config_ptr);
 	fwrite(&target_time, sizeof(time_hr), 1, config_ptr);
 
-	// char s[256];
-	// snprintf(s, sizeof(s), "%d:%d, %d:%d, %f", current_time_tm.tm_hour, current_time_tm.tm_min, target_time.tm_hour, target_time.tm_min, trigger_interval);
-	// printWindow(s);
+	#ifdef DEBUG
+	char s[256];
+	snprintf(s, sizeof(s), "%d:%d, %d:%d, %f", current_time_tm.tm_hour, current_time_tm.tm_min, target_time.tm_hour, target_time.tm_min, trigger_interval);
+	printWindow(s);
+	#endif
 }
 
 void printWindow(char* str) {
@@ -259,6 +263,7 @@ void printWindow(char* str) {
 	Image icon = LoadImage("icon.png");
     SetWindowIcon(icon);
 
+    SetWindowSize(MeasureText(str, 20) + 20, 40);
 	
 	while (!WindowShouldClose()) {
 		BeginDrawing();

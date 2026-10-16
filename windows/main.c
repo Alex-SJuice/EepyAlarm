@@ -6,9 +6,7 @@
 #include <time.h>
 #include <direct.h>
 
-
 #include <shlobj.h>
-//#include <shellapi.h>
 #include <combaseapi.h>
 #include <windows.h>
 #define MAINICON 1
@@ -33,15 +31,15 @@ wchar_t config_path[MAX_PATH];
 void initializeConfig(int argc);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
-	int argc = 0;
-	CommandLineToArgvW(GetCommandLineW(), &argc);
-
 	CreateMutex(NULL, false, "EepyAlarmMutex");
 
 	if(GetLastError() == ERROR_ALREADY_EXISTS) {
 		printWindow("EepyAlarm is already running!");
 		exit(0);
 	}
+
+	int argc = 0;
+	CommandLineToArgvW(GetCommandLineW(), &argc);
 
 	initializeConfig(argc);
 
@@ -50,16 +48,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		time(&current_time_t);
 
 		if(difftime(current_time_t, last_increment) < trigger_interval) {
-			// struct tm current_time_tm = *localtime(&current_time_t);
-			// struct tm li = *localtime(&last_increment);
+			#ifdef DEBUG
+			struct tm current_time_tm = *localtime(&current_time_t);
+			struct tm li = *localtime(&last_increment);
 
-			// char s[64];
-			// snprintf(s, sizeof(s), "%d:%d, %d:%d, %f ", current_time_tm.tm_hour, current_time_tm.tm_min, li.tm_hour, li.tm_min, difftime(current_time_t, last_increment));
-			// printWindow(s);
+			char s[64];
+			snprintf(s, sizeof(s), "%d:%d, %d:%d, %f ", current_time_tm.tm_hour, current_time_tm.tm_min, li.tm_hour, li.tm_min, difftime(current_time_t, last_increment));
+			printWindow(s);
+			#endif
 			continue;
 		}
 
-		alarm();
+		if(difftime(current_time_t, last_increment) < trigger_interval + 10800) {
+			alarm();
+		}
 		
 		if((config_ptr = _wfopen(config_path, L"rb+")) == NULL) {
 			char s[64];
@@ -97,9 +99,8 @@ void initializeConfig(int argc) {
 	}
 
 	_snwprintf(config_path, sizeof(config_path), L"%ls\\EepyAlarm\\config.bin", userdata);
-
 	
-	if((config_ptr = _wfopen(config_path, L"rb+")) == NULL || argc == 1) {
+	if((config_ptr = _wfopen(config_path, L"rb+")) == NULL) {
 		if(errno != ENOENT && errno != 0) {
 			char s[256];
 			snprintf(s, sizeof(s), "Can't open configuration file: %s, %d", strerror(errno), errno);
@@ -129,7 +130,9 @@ void initializeConfig(int argc) {
 		fread(&trigger_interval, sizeof(double), 1, config_ptr);
 		fread(&target_time, sizeof(time_hr), 1, config_ptr);
 
-		//openConfigWindow(config_path, true);
+		if(argc == 1) {
+			openConfigWindow(config_path, true);
+		}
 	}
 
 	CoTaskMemFree(userdata);

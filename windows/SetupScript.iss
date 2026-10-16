@@ -1,6 +1,6 @@
 [Setup]
 AppName=EepyAlarm
-AppVersion=2.1
+AppVersion=2.2
 
 AppMutex=EepyAlarmMutex,Global\EepyAlarmMutex
 SetupMutex=SetupMutex,GlobalSetupMutex

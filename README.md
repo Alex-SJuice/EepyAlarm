@@ -55,7 +55,10 @@ To edit the settings, stop any instance of the program first via task manager. T
 - nicer setup GUI
 - custom, user generated alarms
 - better font
-- kill previous instance instead of failing to launch
+- kill previous instance instead of failing to launch (might be unneeded)
+- 12hr support (Currently uses 24hr)
+- option in the tray icon to set custom ring time today
+- DST support
 
 4.0 (potential):
 - support for Linux

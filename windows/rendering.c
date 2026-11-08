@@ -89,7 +89,7 @@ void alarm() {
 void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 	int inputs[5] = {0};
     int buffer_position[5] = {0};
-    char input_buffer[5][16];
+    char input_buffer[5][3];
 
     Time_mode time_mode[2] = { TFHR, TFHR };
 
@@ -105,33 +105,40 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 
     	for(int i = 0; i < 5; i++) {
 	    	buffer_position[i] = snprintf(input_buffer[i], sizeof(input_buffer[i]), "%d", inputs[i]);
-	    	for(int j = buffer_position[i]; j < 16; j++) {
+	    	for(int j = buffer_position[i]; j < 3; j++) {
 	    		input_buffer[i][j] = '\0';
 	    	}
 	    }
     } else {
     	for(int i = 0; i < 5; i++) {
 	    	buffer_position[i] = 0;
-	    	for(int j = 0; j < 16; j++) {
+	    	for(int j = 0; j < 3; j++) {
 	    		input_buffer[i][j] = '\0';
 	    	}
 	    }
     }
 
     User_state state = IDLE;
+    bool change = false;
 
-    Clock target =  { { 150, 180 }, 100.0, getAngle(10, 12.0f), getAngle(10, 60.0f), AM };
-    Clock current = { { 150, 520 }, 100.0, getAngle(10, 12.0f), getAngle(10, 60.0f), AM };
+    Clock current =  { { 180, 180 }, 120.0, getAngle(0, 12.0f), getAngle(0, 60.0f), TFHR };
+    Clock target = { { 180, 520 }, 120.0, getAngle(0, 12.0f), getAngle(0, 60.0f), AM };
+    HBNumber_line increment = { { 330.0, 630.0}, 550.0 , 100 , 50 };
 
+	SetConfigFlags(FLAG_MSAA_4X_HINT);
 	InitWindow(700, 700, "EepyAlarm Configuration");
     SetTargetFPS(60);
+    
 
     Image icon = LoadImage("icon.png");
     SetWindowIcon(icon);
 
+    Font font = LoadFont("ShareTech-Regular.ttf");
+    SetTextureFilter(font.texture, TEXTURE_FILTER_TRILINEAR);
+
     while (!WindowShouldClose()) {
     	char s[256];
-		snprintf(s, sizeof(s), "%d, %d", GetMouseX() + 20, GetMouseY());
+		snprintf(s, sizeof(s), "%d", inputs[0]);
 		if (IsMouseButtonPressed(0)) {
 			switch(determineClockHandCollision((Vector2) { GetMouseX(), GetMouseY() }, target)) {
 			case 1:
@@ -153,7 +160,43 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 			default:
 				break;
 			}
+			if(state == IDLE) {
+				if(CheckCollisionPointRec((Vector2) { GetMouseX(), GetMouseY() }, (Rectangle) { 20.0, 235.0, 45.0, 45.0 })) {
+					current.mode = AM;
+					state = CURRENT_HOUR;
+					change = true;
+				}
+				if(CheckCollisionPointRec((Vector2) { GetMouseX(), GetMouseY() }, (Rectangle) { 60.0, 280.0, 44.0, 45.0 })) {
+					current.mode = PM;
+					state = CURRENT_HOUR;
+					change = true;
+				}
+				if(CheckCollisionPointRec((Vector2) { GetMouseX(), GetMouseY() }, (Rectangle) { 120.0, 300.0, 81.0, 45.0 })) {
+					current.mode = TFHR;
+					state = CURRENT_HOUR;
+					change = true;
+				}
+				if(CheckCollisionPointRec((Vector2) { GetMouseX(), GetMouseY() }, (Rectangle) { 20.0, 420.0, 45.0, 45.0 })) {
+					target.mode = AM;
+					state = TARGET_HOUR;
+					change = true;
+				}
+				if(CheckCollisionPointRec((Vector2) { GetMouseX(), GetMouseY() }, (Rectangle) { 60.0, 375.0, 44.0, 45.0 })) {
+					target.mode = PM;
+					state = TARGET_HOUR;
+					change = true;
+				}
+				if(CheckCollisionPointRec((Vector2) { GetMouseX(), GetMouseY() }, (Rectangle) { 120.0, 355.0, 81.0, 45.0 })) {
+					target.mode = TFHR;
+					state = TARGET_HOUR;
+					change = true;
+				}
+
+			}
 		} else if (IsMouseButtonUp(0)) {
+			change = true;
+		}
+		if (change) {
 			switch(state) {
 			case TARGET_HOUR:
 				int mod = 12;
@@ -161,9 +204,21 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 					mod = 24;
 				}
 				target.hour = getAngle(nearestPosition(target.hour, mod), mod);
+				switch(target.mode) {
+				case AM:
+					inputs[0] = nearestPosition(target.hour - 2.0 * PI, mod) % 12;
+					break;
+				case PM:
+					inputs[0] = nearestPosition(target.hour - 2.0 * PI, mod) % 12 + 12;
+					break;
+				case TFHR:
+					inputs[0] = nearestPosition(target.hour - 2.0 * PI, mod) % 24;
+					break;
+				}
 				break;
 			case TARGET_MIN:
 				target.minute = getAngle(nearestPosition(target.minute, 60), 60);
+				inputs[1] = nearestPosition(target.minute - 2.0 * PI, 60);
 				break;
 			case CURRENT_HOUR:
 				mod = 12;
@@ -171,11 +226,24 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 					mod = 24;
 				}
 				current.hour = getAngle(nearestPosition(current.hour, mod), mod);
+				switch(current.mode) {
+				case AM:
+					inputs[2] = nearestPosition(current.hour - 2.0 * PI, mod) % 12;
+					break;
+				case PM:
+					inputs[2] = nearestPosition(current.hour - 2.0 * PI, mod) % 12 + 12;
+					break;
+				case TFHR:
+					inputs[2] = nearestPosition(current.hour - 2.0 * PI, mod) % 24;
+					break;
+				}
 				break;
 			case CURRENT_MIN:
 				current.minute = getAngle(nearestPosition(current.minute, 60), 60);
+				inputs[3] = nearestPosition(current.minute - 2.0 * PI, 60);
 				break;
 			}
+			change = false;
 			state = IDLE;
 		}
 
@@ -198,11 +266,47 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 		
 		BeginDrawing();		
     	ClearBackground((Color) { 0, 29, 53, 255 });
+
+    	switch(current.mode) {
+    	case AM:
+    		DrawTextEx(font, "AM", (Vector2) { 20.0, 235.0 }, 45, 1, WHITE);
+    		DrawTextEx(font, "PM", (Vector2) { 60.0, 280.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
+    		DrawTextEx(font, "24HR", (Vector2) { 120.0, 300.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
+    		break;
+    	case PM:
+    		DrawTextEx(font, "AM", (Vector2) { 20.0, 235.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
+    		DrawTextEx(font, "PM", (Vector2) { 60.0, 280.0 }, 45, 1, WHITE);
+    		DrawTextEx(font, "24HR", (Vector2) { 120.0, 300.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
+    		break;
+    	case TFHR:
+    		DrawTextEx(font, "AM", (Vector2) { 20.0, 235.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
+    		DrawTextEx(font, "PM", (Vector2) { 60.0, 280.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
+    		DrawTextEx(font, "24HR", (Vector2) { 120.0, 300.0 }, 45, 1, WHITE);
+    		break;
+    	}
+    	switch(target.mode) {
+    	case AM:
+    		DrawTextEx(font, "AM", (Vector2) { 20.0, 420.0 }, 45, 1, WHITE);
+    		DrawTextEx(font, "PM", (Vector2) { 60.0, 375.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
+    		DrawTextEx(font, "24HR", (Vector2) { 120.0, 355.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
+    		break;
+    	case PM:
+    		DrawTextEx(font, "AM", (Vector2) { 20.0, 420.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
+    		DrawTextEx(font, "PM", (Vector2) { 60.0, 375.0 }, 45, 1, WHITE);
+    		DrawTextEx(font, "24HR", (Vector2) { 120.0, 355.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
+    		break;
+    	case TFHR:
+    		DrawTextEx(font, "AM", (Vector2) { 20.0, 420.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
+    		DrawTextEx(font, "PM", (Vector2) { 60.0, 375.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
+    		DrawTextEx(font, "24HR", (Vector2) { 120.0, 355.0 }, 45, 1, WHITE);
+    		break;
+    	}
     	
     	DrawClock(target);
     	DrawClock(current);
+    	DrawHBLine(increment);
 
-    	DrawText(s, GetMouseX(), GetMouseY(), 20, GREEN);
+    	DrawTextEx(font, s, (Vector2){ GetMouseX() + 10, GetMouseY() }, 20, 1, GREEN);
     	EndDrawing();
     }
 
@@ -454,6 +558,18 @@ void openConfigWindowOld(wchar_t* config_path, bool prevAvailable) {
 	#endif
 }
 
+void DrawHBLine(HBNumber_line line) {
+	DrawLineEx((Vector2) { line.range.x, line.y }, (Vector2) { line.range.y, line.y }, 5.0, WHITE);
+    for(int i = 0; i < line.ticks; i++) {
+    	float x = i;
+    	
+    	DrawLineEx(
+    		(Vector2) { (line.range.y - line.range.x) / ((float)line.ticks - 1) * x + line.range.x, line.y - 10.0 }, 
+    		(Vector2) { (line.range.y - line.range.x) / ((float)line.ticks - 1) * x + line.range.x, line.y + 10.0 }, 
+    		1.0, WHITE);
+    }
+}
+
 void DrawClock(Clock clock) {
 	DrawCircleV(clock.center, clock.radius, RAYWHITE);
 	DrawCircleV(clock.center, 5.0, BLACK);
@@ -522,19 +638,45 @@ int determineClockHandCollision(Vector2 point, Clock clock) {
 }
 
 int nearestPosition(float angle, float mod) {
-	return (int)((angle * mod / 2.0f / PI + mod / 4.0f) + 0.5f);
+	float ang = angle + PI / 2.0;
+	if(ang < 0) {
+		ang += 2.0 * PI;
+	} else if (ang >= 2.0 * PI){
+		ang -= 2.0 * PI;
+	}
+	return (int)(ang * mod / 2.0 / PI + 0.5);
 }
 
 float getAngle(int position, float mod) {
 	return position * 2.0f * PI / mod - PI / 2.0f;
 }
 
-void printWindow(char* str) {
+void printWindow(char *fmt, ...) {
+	va_list ap, copy;
+
+	va_start(ap, fmt);
+	va_copy(copy, ap);
+	int length = vsnprintf(NULL, 0, fmt, copy);
+	va_end(copy);
+	if(length < 0) {
+		va_end(ap);
+		return;
+	}
+
+	char *str = malloc((size_t)(length + 1) * sizeof(char));
+	if(str == NULL) {
+		va_end(ap);
+		return;
+	}
+	vsprintf(str, fmt, ap);
+	va_end(ap);
+
 	InitWindow(500, 40, "Message from EepyAlarm");
 	SetTargetFPS(60);
 
 	Image icon = LoadImage("icon.png");
     SetWindowIcon(icon);
+    UnloadImage(icon);
 
     SetWindowSize(MeasureText(str, 20) + 20, 40);
 	
@@ -543,8 +685,8 @@ void printWindow(char* str) {
 		ClearBackground(RAYWHITE);
 		DrawText(str, 10, 10, 20, BLACK);
 		EndDrawing();
-	}
-
-	UnloadImage(icon);
+	}	
 	CloseWindow();
+
+	free(str);
 }

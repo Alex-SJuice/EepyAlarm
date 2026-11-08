@@ -50,14 +50,17 @@ To edit the settings, stop any instance of the program first via task manager. T
 - nicer looking alarm
 - Icons!
 
+3.0:
+- better font
+- 12hr support (Currently uses 24hr)
+
 3.0 (potential):
 - notification tray icon
+	- option in the tray icon to set custom ring time today
+	- option in tray icon to edit settings
 - nicer setup GUI
 - custom, user generated alarms
-- better font
-- kill previous instance instead of failing to launch (might be unneeded)
-- 12hr support (Currently uses 24hr)
-- option in the tray icon to set custom ring time today
+- kill previous instance instead of failing to launch
 - DST support
 
 4.0 (potential):

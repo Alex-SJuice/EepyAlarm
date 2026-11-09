@@ -35,6 +35,17 @@ Once set, the alarm will stay running in the background and automatically trigge
 
 To edit the settings, stop any instance of the program first via task manager. Then just run the program, and the settings menu will open.
 
+## How to build from source
+
+**Due to certain features, you have to build on a windows machine, for windows**
+
+Make sure you have raylib and some form of gcc installed.
+
+1. go to the latest release, and download the sourcecode
+2. extract, then open a cmd window in the windows folder
+3. run this command: gcc main.c rendering.c resource.o -o EepyAlarm.exe -IC:\raylib\w64devkit\include -LC:\raylib\w64devkit\lib -lraylib -lopengl32 -lgdi32 -lwinmm -lole32 -mwindows
+4. This will generate the executable.
+
 ## Features
 
 1.0:

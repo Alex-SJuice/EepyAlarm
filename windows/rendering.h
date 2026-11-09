@@ -32,22 +32,30 @@ typedef struct {
 	struct Vector2 range;
 	int y;
 	int ticks;
-	int selected;
+	float selected;
 } HBNumber_line;
 
 void printWindow(char *fmt, ...);
 
 void openConfigWindow(wchar_t* config_path, bool prevAvailable);
 
+float floatClamp(float value, float min, float max);
+
+int intClamp(int value, int min, int max);
+
 //Only run in a valid raylib window
 void DrawHBLine(HBNumber_line line);
+
+int nearestPositionLine(float x, HBNumber_line line);
+
+float getPosition(int tick, HBNumber_line line);
 
 //Only run in a valid raylib window
 void DrawClock(Clock clock);
 
 int determineClockHandCollision(struct Vector2 point, Clock clock);
 
-int nearestPosition(float angle, float mod);
+int nearestPositionClock(float angle, float mod);
 
 float getAngle(int position, float mod);
 

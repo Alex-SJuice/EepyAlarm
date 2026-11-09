@@ -123,7 +123,8 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 
     Clock current =  { { 180, 180 }, 120.0, getAngle(0, 12.0f), getAngle(0, 60.0f), TFHR };
     Clock target = { { 180, 520 }, 120.0, getAngle(0, 12.0f), getAngle(0, 60.0f), AM };
-    HBNumber_line increment = { { 330.0, 630.0}, 550.0 , 100 , 50 };
+    HBNumber_line increment = { { 330.0, 630.0}, 550.0 , 100 , 0 };
+    increment.selected = getPosition(0, increment);
 
 	SetConfigFlags(FLAG_MSAA_4X_HINT);
 	InitWindow(700, 700, "EepyAlarm Configuration");
@@ -138,7 +139,7 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 
     while (!WindowShouldClose()) {
     	char s[256];
-		snprintf(s, sizeof(s), "%d", inputs[0]);
+		snprintf(s, sizeof(s), "%f", increment.selected);
 		if (IsMouseButtonPressed(0)) {
 			switch(determineClockHandCollision((Vector2) { GetMouseX(), GetMouseY() }, target)) {
 			case 1:
@@ -191,6 +192,11 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 					state = TARGET_HOUR;
 					change = true;
 				}
+				if(CheckCollisionPointRec((Vector2) { GetMouseX(), GetMouseY() }, (Rectangle) { increment.selected - 7.5, increment.y - 35, 15, 20 })) {
+					snprintf(s, sizeof(s), "ah");
+					state = INCREMENT;
+					//change = true;
+				}
 
 			}
 		} else if (IsMouseButtonUp(0)) {
@@ -203,44 +209,48 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 				if (target.mode == TFHR) {
 					mod = 24;
 				}
-				target.hour = getAngle(nearestPosition(target.hour, mod), mod);
+				target.hour = getAngle(nearestPositionClock(target.hour, mod), mod);
 				switch(target.mode) {
 				case AM:
-					inputs[0] = nearestPosition(target.hour - 2.0 * PI, mod) % 12;
+					inputs[0] = nearestPositionClock(target.hour - 2.0 * PI, mod) % 12;
 					break;
 				case PM:
-					inputs[0] = nearestPosition(target.hour - 2.0 * PI, mod) % 12 + 12;
+					inputs[0] = nearestPositionClock(target.hour - 2.0 * PI, mod) % 12 + 12;
 					break;
 				case TFHR:
-					inputs[0] = nearestPosition(target.hour - 2.0 * PI, mod) % 24;
+					inputs[0] = nearestPositionClock(target.hour - 2.0 * PI, mod) % 24;
 					break;
 				}
 				break;
 			case TARGET_MIN:
-				target.minute = getAngle(nearestPosition(target.minute, 60), 60);
-				inputs[1] = nearestPosition(target.minute - 2.0 * PI, 60);
+				target.minute = getAngle(nearestPositionClock(target.minute, 60), 60);
+				inputs[1] = nearestPositionClock(target.minute - 2.0 * PI, 60);
 				break;
 			case CURRENT_HOUR:
 				mod = 12;
 				if (current.mode == TFHR) {
 					mod = 24;
 				}
-				current.hour = getAngle(nearestPosition(current.hour, mod), mod);
+				current.hour = getAngle(nearestPositionClock(current.hour, mod), mod);
 				switch(current.mode) {
 				case AM:
-					inputs[2] = nearestPosition(current.hour - 2.0 * PI, mod) % 12;
+					inputs[2] = nearestPositionClock(current.hour - 2.0 * PI, mod) % 12;
 					break;
 				case PM:
-					inputs[2] = nearestPosition(current.hour - 2.0 * PI, mod) % 12 + 12;
+					inputs[2] = nearestPositionClock(current.hour - 2.0 * PI, mod) % 12 + 12;
 					break;
 				case TFHR:
-					inputs[2] = nearestPosition(current.hour - 2.0 * PI, mod) % 24;
+					inputs[2] = nearestPositionClock(current.hour - 2.0 * PI, mod) % 24;
 					break;
 				}
 				break;
 			case CURRENT_MIN:
-				current.minute = getAngle(nearestPosition(current.minute, 60), 60);
-				inputs[3] = nearestPosition(current.minute - 2.0 * PI, 60);
+				current.minute = getAngle(nearestPositionClock(current.minute, 60), 60);
+				inputs[3] = nearestPositionClock(current.minute - 2.0 * PI, 60);
+				break;
+			case INCREMENT:
+				increment.selected = getPosition(nearestPositionLine(increment.selected, increment), increment);
+				inputs[4] = nearestPositionLine(increment.selected, increment);
 				break;
 			}
 			change = false;
@@ -260,6 +270,8 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 		case CURRENT_MIN:
 			current.minute = atan2((double)(GetMouseY() - current.center.y), (double)(GetMouseX() - current.center.x));
 			break;
+		case INCREMENT:
+			increment.selected = floatClamp(GetMouseX(), increment.range.x, increment.range.y);
 		default:
 			break;
 		}
@@ -568,6 +580,20 @@ void DrawHBLine(HBNumber_line line) {
     		(Vector2) { (line.range.y - line.range.x) / ((float)line.ticks - 1) * x + line.range.x, line.y + 10.0 }, 
     		1.0, WHITE);
     }
+    DrawTriangle(
+    		(Vector2) { line.selected - 7.5, line.y - 20 },
+    		(Vector2) { line.selected, line.y - 10 }, 
+    		(Vector2) { line.selected + 7.5, line.y - 20 },
+    		WHITE);
+    DrawRectangle(line.selected - 7.5, line.y - 35, 15, 15, WHITE);
+}
+
+int nearestPositionLine(float x, HBNumber_line line) {
+	return (int)((x - line.range.x) / (line.range.y - line.range.x) * (line.ticks - 1) + 0.5);
+}
+
+float getPosition(int tick, HBNumber_line line) {
+	return (float)tick / (line.ticks - 1) * (line.range.y - line.range.x) + line.range.x;
 }
 
 void DrawClock(Clock clock) {
@@ -618,26 +644,27 @@ void DrawClock(Clock clock) {
 }
 
 int determineClockHandCollision(Vector2 point, Clock clock) {
-	// float hour_angle = clock.hour * 2.0f * PI / 12 - PI / 2.0f;
 	if (clock.hour > PI) {
 		clock.hour -= 2.0f * PI;
 	}
-	// float minute_angle = clock.minute * 2.0f * PI / 60 - PI / 2.0f;
 	if (clock.minute > PI) {
 		clock.minute -= 2.0f * PI;
 	}
 	float point_angle = atan2((double)(point.y - clock.center.y), (double)(point.x - clock.center.x));
 	float distance = (point.y - clock.center.y) * (point.y - clock.center.y) + (point.x - clock.center.x) * (point.x - clock.center.x);
-	if (clock.radius * clock.radius * 0.9025f > distance && fabsf(clock.minute - point_angle) < 0.1f) {
+	if (distance == 0) {
+		return 1;
+	}
+	if (clock.radius * clock.radius * 0.9025f > distance && fabsf(clock.minute - point_angle) < PI / sqrt(distance + 1.0f)) {
 		return 2;
 	} 
-	if (clock.radius * clock.radius * 0.25f > distance && fabsf(clock.hour - point_angle) < 0.1f) {
+	if (clock.radius * clock.radius * 0.25f > distance && fabsf(clock.hour - point_angle) < PI / sqrt(distance + 1.0f)) {
 		return 1;
 	}
 	return 0;
 }
 
-int nearestPosition(float angle, float mod) {
+int nearestPositionClock(float angle, float mod) {
 	float ang = angle + PI / 2.0;
 	if(ang < 0) {
 		ang += 2.0 * PI;
@@ -649,6 +676,26 @@ int nearestPosition(float angle, float mod) {
 
 float getAngle(int position, float mod) {
 	return position * 2.0f * PI / mod - PI / 2.0f;
+}
+
+float floatClamp(float value, float min, float max) {
+	if(value < min) {
+		return min;
+	}
+	if (value > max) {
+		return max;
+	}
+	return value;
+}
+
+int intClamp(int value, int min, int max) {
+	if(value < min) {
+		return min;
+	}
+	if (value > max) {
+		return max;
+	}
+	return value;
 }
 
 void printWindow(char *fmt, ...) {
@@ -690,3 +737,4 @@ void printWindow(char *fmt, ...) {
 
 	free(str);
 }
+

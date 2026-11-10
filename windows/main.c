@@ -126,9 +126,11 @@ void initializeConfig(int argc) {
 
 		openConfigWindow(config_path, false);
 	} else {
-		fread(&last_increment, sizeof(time_t), 1, config_ptr);
+		fread(&last_increment,   sizeof(time_t), 1, config_ptr);
 		fread(&trigger_interval, sizeof(double), 1, config_ptr);
-		fread(&target_time, sizeof(time_hr), 1, config_ptr);
+		fread(&target_time, 	 sizeof(time_hr), 1, config_ptr);
+		fread(&current_tfhr, 	 sizeof(bool), 1, config_ptr);
+		fread(&target_tfhr, 	 sizeof(bool), 1, config_ptr);
 
 		if(argc == 1) {
 			openConfigWindow(config_path, true);

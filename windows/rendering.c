@@ -11,7 +11,8 @@
 #include "rendering.h"
 #include "variables.h"
 
-
+bool current_tfhr;
+bool target_tfhr;
 
 void alarm() {
 	InitWindow(500, 500, "ALARM!");
@@ -87,44 +88,47 @@ void alarm() {
 }
 
 void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
-	int inputs[5] = {0};
-    int buffer_position[5] = {0};
-    char input_buffer[5][3];
+	Clock current =  { { 180, 180 }, 120.0, getAngle(0, 12.0f), getAngle(0, 60.0f), AM };
+    Clock target = { { 180, 520 }, 120.0, getAngle(0, 12.0f), getAngle(0, 60.0f), AM };
+    HBNumber_line increment = { { 325.0, 650.0}, 550.0 , 100 , 0 };
+    increment.selected = getPosition(0, increment);
 
-    Time_mode time_mode[2] = { TFHR, TFHR };
+	int inputs[5] = {0};
 
     if(prevAvailable) {
     	inputs[0] = target_time.tm_hour;
     	inputs[1] = target_time.tm_min;
+    	if(target_tfhr){
+    		target.mode = TFHR;
+	    	target.hour = getAngle(target_time.tm_hour, 24);	
+	    } else {
+	    	if(target_time.tm_hour > 12) { 
+		    	target.mode = PM;
+		    }
+	    	target.hour = getAngle(target_time.tm_hour % 12, 12);
+	    }
+	    target.minute = getAngle(target_time.tm_min, 60);
 
     	struct tm current_time = *localtime(&last_increment);
     	inputs[2] = current_time.tm_hour;
     	inputs[3] = current_time.tm_min;
+    	if(current_tfhr){
+    		current.mode = TFHR;
+	    	current.hour = getAngle(current_time.tm_hour, 24);	
+	    } else {
+	    	if(current_time.tm_hour > 12) { 
+		    	current.mode = PM;
+		    }
+	    	current.hour = getAngle(current_time.tm_hour % 12, 12);
+	    }
+	    current.minute = getAngle(current_time.tm_min, 60);
 
     	inputs[4] = (86400 - trigger_interval) / 60;
-
-    	for(int i = 0; i < 5; i++) {
-	    	buffer_position[i] = snprintf(input_buffer[i], sizeof(input_buffer[i]), "%d", inputs[i]);
-	    	for(int j = buffer_position[i]; j < 3; j++) {
-	    		input_buffer[i][j] = '\0';
-	    	}
-	    }
-    } else {
-    	for(int i = 0; i < 5; i++) {
-	    	buffer_position[i] = 0;
-	    	for(int j = 0; j < 3; j++) {
-	    		input_buffer[i][j] = '\0';
-	    	}
-	    }
+    	increment.selected = getPosition(inputs[4], increment);
     }
 
     User_state state = IDLE;
     bool change = false;
-
-    Clock current =  { { 180, 180 }, 120.0, getAngle(0, 12.0f), getAngle(0, 60.0f), TFHR };
-    Clock target = { { 180, 520 }, 120.0, getAngle(0, 12.0f), getAngle(0, 60.0f), AM };
-    HBNumber_line increment = { { 330.0, 630.0}, 550.0 , 100 , 0 };
-    increment.selected = getPosition(0, increment);
 
 	SetConfigFlags(FLAG_MSAA_4X_HINT);
 	InitWindow(700, 700, "EepyAlarm Configuration");
@@ -133,13 +137,14 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 
     Image icon = LoadImage("icon.png");
     SetWindowIcon(icon);
+    Texture2D icon_texture = LoadTextureFromImage(icon);
 
     Font font = LoadFont("ShareTech-Regular.ttf");
     SetTextureFilter(font.texture, TEXTURE_FILTER_TRILINEAR);
 
     while (!WindowShouldClose()) {
     	char s[256];
-		snprintf(s, sizeof(s), "%f", increment.selected);
+		snprintf(s, sizeof(s), "%d", inputs[4]);
 		if (IsMouseButtonPressed(0)) {
 			switch(determineClockHandCollision((Vector2) { GetMouseX(), GetMouseY() }, target)) {
 			case 1:
@@ -193,9 +198,7 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 					change = true;
 				}
 				if(CheckCollisionPointRec((Vector2) { GetMouseX(), GetMouseY() }, (Rectangle) { increment.selected - 7.5, increment.y - 35, 15, 20 })) {
-					snprintf(s, sizeof(s), "ah");
 					state = INCREMENT;
-					//change = true;
 				}
 
 			}
@@ -279,6 +282,11 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 		BeginDrawing();		
     	ClearBackground((Color) { 0, 29, 53, 255 });
 
+    	DrawTextEx(font, "Current Time", (Vector2) { 110.0, 15.0 }, 30, 1, WHITE);
+    	DrawTextEx(font, "Target Time", (Vector2) { 115.0, 655.0 }, 30, 1, WHITE);
+    	DrawTextPro(font, "EepyAlarm 3.0", (Vector2) { 350.0, 120.0 }, (Vector2) { 0.0, 0.0 }, -35, 42, 1, WHITE);
+    	DrawTextureEx(icon_texture, (Vector2) { 400.0, 30.0 }, 0.0, 0.5, WHITE);
+
     	switch(current.mode) {
     	case AM:
     		DrawTextEx(font, "AM", (Vector2) { 20.0, 235.0 }, 45, 1, WHITE);
@@ -318,6 +326,32 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
     	DrawClock(current);
     	DrawHBLine(increment);
 
+    	char num[3];
+    	if(nearestPositionLine(increment.selected, increment) > 0) {
+	    	snprintf(num, sizeof(num), "%d", nearestPositionLine(increment.selected, increment) - 1);
+	    	DrawTextEx(font, num, 
+	    		(Vector2) { getPosition(
+	    			nearestPositionLine(
+	    				increment.selected, increment) - 1, increment) - 
+	    				(increment.range.y - increment.range.x) / ((float)increment.ticks - 1) / 2.0, increment.y + 20 },
+	    		20, 1, WHITE);
+	    }
+	    if(nearestPositionLine(increment.selected, increment) < nearestPositionLine(increment.range.y, increment)) {
+	    	snprintf(num, sizeof(num), "%d", nearestPositionLine(increment.selected, increment) + 1);
+	    	DrawTextEx(font, num, 
+	    		(Vector2) { getPosition(
+	    			nearestPositionLine(
+	    				increment.selected, increment) + 1, increment) - 
+	    				(increment.range.y - increment.range.x) / ((float)increment.ticks - 1) / 2.0, increment.y + 20 },
+	    		20, 1, WHITE);
+	    }
+	    snprintf(num, sizeof(num), "%d", nearestPositionLine(increment.selected, increment));
+	    	DrawTextEx(font, num, 
+	    		(Vector2) { getPosition(
+	    			nearestPositionLine(
+	    				increment.selected, increment), increment) - 
+	    				(increment.range.y - increment.range.x) / ((float)increment.ticks - 1) / 2.0, increment.y + 20 },
+	    		20, 1, WHITE);
     	DrawTextEx(font, s, (Vector2){ GetMouseX() + 10, GetMouseY() }, 20, 1, GREEN);
     	EndDrawing();
     }
@@ -339,10 +373,16 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 
 	trigger_interval = 86400 - inputs[4] * 60; //seconds
 
+	bool current_tfhr = current.mode == TFHR;
+	bool target_tfhr = current.mode == TFHR;
+
 	rewind(config_ptr);
-	fwrite(&last_increment, sizeof(time_t), 1, config_ptr);
+	fwrite(&last_increment,   sizeof(time_t), 1, config_ptr);
 	fwrite(&trigger_interval, sizeof(double), 1, config_ptr);
-	fwrite(&target_time, sizeof(time_hr), 1, config_ptr);
+	fwrite(&target_time,      sizeof(time_hr), 1, config_ptr);
+	fwrite(&current_tfhr, 	  sizeof(bool), 1, config_ptr);
+	fwrite(&target_tfhr, 	  sizeof(bool), 1, config_ptr);
+
 
 	#ifdef DEBUG
 	char s[256];
@@ -589,7 +629,7 @@ void DrawHBLine(HBNumber_line line) {
 }
 
 int nearestPositionLine(float x, HBNumber_line line) {
-	return (int)((x - line.range.x) / (line.range.y - line.range.x) * (line.ticks - 1) + 0.5);
+	return (int)((x - line.range.x + 1) / (line.range.y - line.range.x) * (line.ticks - 1) + 0.5);
 }
 
 float getPosition(int tick, HBNumber_line line) {

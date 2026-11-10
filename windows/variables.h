@@ -17,3 +17,6 @@ extern double trigger_interval;
 
 extern FILE* config_ptr;
 extern wchar_t config_path[MAX_PATH];
+
+extern bool current_tfhr;
+extern bool target_tfhr;

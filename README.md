@@ -35,6 +35,10 @@ Once set, the alarm will stay running in the background and automatically trigge
 
 To edit the settings, stop any instance of the program first via task manager. Then just run the program, and the settings menu will open.
 
+If you wish to run the exe directly, simply download the zip from github, extract, and run.
+For older releases, the files will be all seperate instead of in a zip. just download everything that isn't the installer, then place them in the same path.
+The alarm will NOT start up on system reboot, so beware!
+
 ## How to build from source
 
 **Due to certain features, you have to build on a windows machine, for windows**
@@ -81,7 +85,7 @@ Make sure you have raylib and some form of gcc installed.
 
 A surprising amount went into the first version of the program. Here's just a few of the highlights:
 - using while loops to gracefully handle bad inputs during initialization
-	- omg it took so long to figure out that you neet to fflush(stdout) or else user input doesn't work.
+	- omg it took so long to figure out that you need to fflush(stdout) or else user input doesn't work.
 - recreating printf so that it prints to a new console window, while also supporting format strings i.e. "I am %d years old"
 	- this involved the ... (variable number of function arguments) and stdarg.h
 - keeping track of when to ring by storing the last time it rang in the config file
@@ -105,6 +109,6 @@ Shout outs to Kernighan and Ritchie for making C
 
 W3Schools and Geeks for Geeks for some IO examples
 
-AI (Gemini & Deepseek) for research into the windows API and debugging.
+AI (Gemini & Deepseek & ChatGPT) for research into the windows API and debugging.
 
 And to Hackclub for all of the motivation (and free loot)

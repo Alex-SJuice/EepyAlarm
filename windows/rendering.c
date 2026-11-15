@@ -10,9 +10,11 @@
 #include "raylib.h"
 #include "rendering.h"
 #include "variables.h"
+#include "my_math.h"
 
 bool current_tfhr;
 bool target_tfhr;
+Font font;
 
 void alarm() {
 	InitWindow(500, 500, "ALARM!");
@@ -21,7 +23,6 @@ void alarm() {
 
     Image icon = LoadImage("icon.png");
     SetWindowIcon(icon);
-
 
     Vector2 origin = { 0.0f, 0.0f };
     Rectangle rect = { GetScreenWidth() / 2 - 300, GetScreenHeight() - 620, 600.0f, 600.0f };
@@ -73,7 +74,7 @@ void alarm() {
 
 		BeginDrawing();
 			ClearBackground(BLACK);
-			DrawText(message, GetScreenWidth() / 2 - MeasureText(message, 100) / 2, 100, 100, (Color){ 255, 255, 255, a1 });
+			DrawText(message, GetScreenWidth() / 2 - MeasureText(message, 100) / 2, 100 , 100, (Color){ 255, 255, 255, a1 });
 			DrawText("Go to bed.", GetScreenWidth() / 2 - MeasureText("Go to bed.", 100) / 2, 200, 100, (Color){ 255, 255, 255, a2 });
 			DrawText("Press ESC to close.", GetScreenWidth() / 2 - MeasureText("Press ESC to close", 50) / 2, 300, 50, (Color){ 255, 255, 255, a3 });
 
@@ -90,8 +91,9 @@ void alarm() {
 void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 	Clock current =  { { 180, 180 }, 120.0, getAngle(0, 12.0f), getAngle(0, 60.0f), AM };
     Clock target = { { 180, 520 }, 120.0, getAngle(0, 12.0f), getAngle(0, 60.0f), AM };
-    HBNumber_line increment = { { 325.0, 650.0}, 550.0 , 100 , 0 };
+    HBNumber_line increment = { { 330.0, 655.0}, 530.0 , 100 , 0 };
     increment.selected = getPosition(0, increment);
+    Rectangle preview = { 430.0, 410.0, 100.0, 40.0 };
 
 	int inputs[5] = {0};
 
@@ -139,13 +141,33 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
     SetWindowIcon(icon);
     Texture2D icon_texture = LoadTextureFromImage(icon);
 
-    Font font = LoadFont("ShareTech-Regular.ttf");
+    font = LoadFont("ShareTech-Regular.ttf");
     SetTextureFilter(font.texture, TEXTURE_FILTER_TRILINEAR);
 
     while (!WindowShouldClose()) {
     	char s[256];
 		snprintf(s, sizeof(s), "%d", inputs[4]);
+
+		bool hovering = false;
+		if (CheckCollisionPointRec((Vector2) { GetMouseX(), GetMouseY() }, preview)) {
+			hovering = true;
+		}
 		if (IsMouseButtonPressed(0)) {
+			if (hovering) {
+				UnloadFont(font);
+				UnloadTexture(icon_texture);
+				UnloadImage(icon);
+    			CloseWindow();
+				alarm();
+				SetConfigFlags(FLAG_MSAA_4X_HINT);
+				InitWindow(700, 700, "EepyAlarm Configuration");
+			    SetTargetFPS(60);
+			    icon = LoadImage("icon.png");
+			    SetWindowIcon(icon);
+			    icon_texture = LoadTextureFromImage(icon);
+			    font = LoadFont("ShareTech-Regular.ttf");
+			    SetTextureFilter(font.texture, TEXTURE_FILTER_TRILINEAR);
+			}
 			switch(determineClockHandCollision((Vector2) { GetMouseX(), GetMouseY() }, target)) {
 			case 1:
 				state = TARGET_HOUR;
@@ -284,43 +306,41 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 
     	DrawTextEx(font, "Current Time", (Vector2) { 110.0, 15.0 }, 30, 1, WHITE);
     	DrawTextEx(font, "Target Time", (Vector2) { 115.0, 655.0 }, 30, 1, WHITE);
-    	DrawTextPro(font, "EepyAlarm 3.0", (Vector2) { 350.0, 120.0 }, (Vector2) { 0.0, 0.0 }, -35, 42, 1, WHITE);
-    	DrawTextureEx(icon_texture, (Vector2) { 400.0, 30.0 }, 0.0, 0.5, WHITE);
+    	DrawTextEx(font, "Increment", (Vector2) { 430.0, 580.0 }, 30, 1, WHITE);
+    	DrawTextEx(font, "Alarm", (Vector2) { 320.0, 360.0 }, 30, 1, WHITE);
+    	DrawTextPro(font, "EepyAlarm", (Vector2) { 320.0, 60.0 }, (Vector2) { 0.0, 0.0 }, 0, 50, 1, WHITE);
+    	DrawTextureEx(icon_texture, (Vector2) { 400.0, 60.0 }, 0.0, 0.5, WHITE);
 
-    	switch(current.mode) {
-    	case AM:
-    		DrawTextEx(font, "AM", (Vector2) { 20.0, 235.0 }, 45, 1, WHITE);
-    		DrawTextEx(font, "PM", (Vector2) { 60.0, 280.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
-    		DrawTextEx(font, "24HR", (Vector2) { 120.0, 300.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
-    		break;
-    	case PM:
-    		DrawTextEx(font, "AM", (Vector2) { 20.0, 235.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
-    		DrawTextEx(font, "PM", (Vector2) { 60.0, 280.0 }, 45, 1, WHITE);
-    		DrawTextEx(font, "24HR", (Vector2) { 120.0, 300.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
-    		break;
-    	case TFHR:
-    		DrawTextEx(font, "AM", (Vector2) { 20.0, 235.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
-    		DrawTextEx(font, "PM", (Vector2) { 60.0, 280.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
-    		DrawTextEx(font, "24HR", (Vector2) { 120.0, 300.0 }, 45, 1, WHITE);
-    		break;
-    	}
-    	switch(target.mode) {
-    	case AM:
-    		DrawTextEx(font, "AM", (Vector2) { 20.0, 420.0 }, 45, 1, WHITE);
-    		DrawTextEx(font, "PM", (Vector2) { 60.0, 375.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
-    		DrawTextEx(font, "24HR", (Vector2) { 120.0, 355.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
-    		break;
-    	case PM:
-    		DrawTextEx(font, "AM", (Vector2) { 20.0, 420.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
-    		DrawTextEx(font, "PM", (Vector2) { 60.0, 375.0 }, 45, 1, WHITE);
-    		DrawTextEx(font, "24HR", (Vector2) { 120.0, 355.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
-    		break;
-    	case TFHR:
-    		DrawTextEx(font, "AM", (Vector2) { 20.0, 420.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
-    		DrawTextEx(font, "PM", (Vector2) { 60.0, 375.0 }, 45, 1, (Color) { 255, 255, 255, 100 });
-    		DrawTextEx(font, "24HR", (Vector2) { 120.0, 355.0 }, 45, 1, WHITE);
-    		break;
-    	}
+    	DrawRectangleRec(preview, (Color) { 255, 255, 255, hovering ? 255 : 200});
+    	DrawLineEx(
+    		(Vector2) { preview.x - 2.5, preview.y }, 
+    		(Vector2) { preview.x - 2.5, preview.y + preview.height }, 5, 
+    		(Color) { 255, 255, 255, hovering ? 255 : 200});
+    	DrawLineEx(
+    		(Vector2) { preview.x, preview.y + preview.height + 2.5 }, 
+    		(Vector2) { preview.x + preview.width, preview.y + preview.height + 2.5 }, 5, 
+    		(Color) { 255, 255, 255, hovering ? 255 : 200});
+    	DrawLineEx(
+    		(Vector2) { preview.x, preview.y - 2.5 }, 
+    		(Vector2) { preview.x + preview.width, preview.y - 2.5 }, 5, 
+    		(Color) { 255, 255, 255, hovering ? 255 : 200});
+    	DrawLineEx(
+    		(Vector2) { preview.x + preview.width + 2.5, preview.y }, 
+    		(Vector2) { preview.x + preview.width + 2.5, preview.y + preview.height }, 5, 
+    		(Color) { 255, 255, 255, hovering ? 255 : 200});
+    	DrawCircleSector((Vector2) { preview.x, preview.y }, 5, 180, 270, 10, (Color) { 255, 255, 255, hovering ? 255 : 200});
+    	DrawCircleSector((Vector2) { preview.x + preview.width, preview.y }, 5, 270, 360, 10, (Color) { 255, 255, 255, hovering ? 255 : 200});
+    	DrawCircleSector((Vector2) { preview.x, preview.y + preview.height }, 5, 90, 180, 10, (Color) { 255, 255, 255, hovering ? 255 : 200});
+    	DrawCircleSector((Vector2) { preview.x + preview.width, preview.y + preview.height }, 5, 0, 90, 10, (Color) { 255, 255, 255, hovering ? 255 : 200});
+    	DrawTextEx(font, "Preview", (Vector2) { preview.x + 12.0, preview.y + 8.0 }, 25, 1, (Color) { 0, 29, 53, hovering ? 255 : 200 });
+
+    	DrawTextEx(font, "AM", (Vector2) { 20.0, 235.0 }, 45, 1, (Color) { 255, 255, 255, current.mode == AM ? 255 : 100 });
+    	DrawTextEx(font, "PM", (Vector2) { 60.0, 280.0 }, 45, 1, (Color) { 255, 255, 255, current.mode == PM ? 255 : 100 });
+    	DrawTextEx(font, "24HR", (Vector2) { 120.0, 300.0 }, 45, 1, (Color) { 255, 255, 255, current.mode == TFHR ? 255 : 100 });
+
+    	DrawTextEx(font, "AM", (Vector2) { 20.0, 420.0 }, 45, 1, (Color) { 255, 255, 255, target.mode == AM ? 255 : 100 });
+    	DrawTextEx(font, "PM", (Vector2) { 60.0, 375.0 }, 45, 1, (Color) { 255, 255, 255, target.mode == PM ? 255 : 100 });
+    	DrawTextEx(font, "24HR", (Vector2) { 120.0, 355.0 }, 45, 1, (Color) { 255, 255, 255, target.mode == TFHR ? 255 : 100 });
     	
     	DrawClock(target);
     	DrawClock(current);
@@ -352,10 +372,12 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 	    				increment.selected, increment), increment) - 
 	    				(increment.range.y - increment.range.x) / ((float)increment.ticks - 1) / 2.0, increment.y + 20 },
 	    		20, 1, WHITE);
-    	DrawTextEx(font, s, (Vector2){ GetMouseX() + 10, GetMouseY() }, 20, 1, GREEN);
+    	//DrawTextEx(font, s, (Vector2){ GetMouseX() + 10, GetMouseY() }, 20, 1, GREEN);
     	EndDrawing();
     }
 
+    UnloadFont(font);
+    UnloadTexture(icon_texture);
     UnloadImage(icon);
     CloseWindow();
 
@@ -612,13 +634,18 @@ void openConfigWindowOld(wchar_t* config_path, bool prevAvailable) {
 
 void DrawHBLine(HBNumber_line line) {
 	DrawLineEx((Vector2) { line.range.x, line.y }, (Vector2) { line.range.y, line.y }, 5.0, WHITE);
+	float h = line.ticks / 3.0;
+	float a = (line.selected - line.range.x + 1) / (line.range.y - line.range.x) * (line.ticks - 1);
+	float correction = (10.0 - (3.0 / 8.0 * h) * (
+    		exp(-0.1 * pow(-a, 2.0))
+    + 3.0 * exp(-0.1 * pow(h - a, 2.0))
+   	+ 3.0 * exp(-0.1 * pow(2.0 * h - a, 2.0))
+    	+ exp(-0.1 * pow(line.ticks - a, 2.0))
+    	)) / line.ticks;
+	float running = line.range.y;
     for(int i = 0; i < line.ticks; i++) {
-    	float x = i;
-    	
-    	DrawLineEx(
-    		(Vector2) { (line.range.y - line.range.x) / ((float)line.ticks - 1) * x + line.range.x, line.y - 10.0 }, 
-    		(Vector2) { (line.range.y - line.range.x) / ((float)line.ticks - 1) * x + line.range.x, line.y + 10.0 }, 
-    		1.0, WHITE);
+    	DrawLineEx((Vector2) { running, line.y - 10.0 }, (Vector2) { running, line.y + 10.0 }, 2, WHITE);	
+    	running -= (line.ticks * exp(-0.1 * pow(i - a, 2.0)) + correction) / 10.0;
     }
     DrawTriangle(
     		(Vector2) { line.selected - 7.5, line.y - 20 },
@@ -626,14 +653,6 @@ void DrawHBLine(HBNumber_line line) {
     		(Vector2) { line.selected + 7.5, line.y - 20 },
     		WHITE);
     DrawRectangle(line.selected - 7.5, line.y - 35, 15, 15, WHITE);
-}
-
-int nearestPositionLine(float x, HBNumber_line line) {
-	return (int)((x - line.range.x + 1) / (line.range.y - line.range.x) * (line.ticks - 1) + 0.5);
-}
-
-float getPosition(int tick, HBNumber_line line) {
-	return (float)tick / (line.ticks - 1) * (line.range.y - line.range.x) + line.range.x;
 }
 
 void DrawClock(Clock clock) {
@@ -683,60 +702,6 @@ void DrawClock(Clock clock) {
 	DrawCircleV(tip, 5.0, BLACK);
 }
 
-int determineClockHandCollision(Vector2 point, Clock clock) {
-	if (clock.hour > PI) {
-		clock.hour -= 2.0f * PI;
-	}
-	if (clock.minute > PI) {
-		clock.minute -= 2.0f * PI;
-	}
-	float point_angle = atan2((double)(point.y - clock.center.y), (double)(point.x - clock.center.x));
-	float distance = (point.y - clock.center.y) * (point.y - clock.center.y) + (point.x - clock.center.x) * (point.x - clock.center.x);
-	if (distance == 0) {
-		return 1;
-	}
-	if (clock.radius * clock.radius * 0.9025f > distance && fabsf(clock.minute - point_angle) < PI / sqrt(distance + 1.0f)) {
-		return 2;
-	} 
-	if (clock.radius * clock.radius * 0.25f > distance && fabsf(clock.hour - point_angle) < PI / sqrt(distance + 1.0f)) {
-		return 1;
-	}
-	return 0;
-}
-
-int nearestPositionClock(float angle, float mod) {
-	float ang = angle + PI / 2.0;
-	if(ang < 0) {
-		ang += 2.0 * PI;
-	} else if (ang >= 2.0 * PI){
-		ang -= 2.0 * PI;
-	}
-	return (int)(ang * mod / 2.0 / PI + 0.5);
-}
-
-float getAngle(int position, float mod) {
-	return position * 2.0f * PI / mod - PI / 2.0f;
-}
-
-float floatClamp(float value, float min, float max) {
-	if(value < min) {
-		return min;
-	}
-	if (value > max) {
-		return max;
-	}
-	return value;
-}
-
-int intClamp(int value, int min, int max) {
-	if(value < min) {
-		return min;
-	}
-	if (value > max) {
-		return max;
-	}
-	return value;
-}
 
 void printWindow(char *fmt, ...) {
 	va_list ap, copy;

@@ -1,4 +1,4 @@
-//gcc main.c rendering.c resource.o -o EepyAlarm.exe -IC:\raylib\w64devkit\include -LC:\raylib\w64devkit\lib -lraylib -lopengl32 -lgdi32 -lwinmm -lole32 -mwindows
+//gcc main.c rendering.c my_math.c resource.o -o EepyAlarm.exe -IC:\raylib\w64devkit\include -LC:\raylib\w64devkit\lib -lraylib -lopengl32 -lgdi32 -lwinmm -lole32 -mwindows
 
 #include <stdio.h>
 #include <stdlib.h>

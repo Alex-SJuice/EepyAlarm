@@ -7,8 +7,11 @@
 #include <direct.h>
 
 #include <shlobj.h>
+#include <shellapi.h>
 #include <combaseapi.h>
 #include <windows.h>
+#include <tlhelp32.h>
+#define WM_CLICKMESSAGE (WM_USER + 1)
 #define MAINICON 1
 
 #define INITGUID
@@ -27,37 +30,67 @@ double trigger_interval;
 FILE* config_ptr;
 wchar_t config_path[MAX_PATH];
 
+bool dst;
+
 
 void initializeConfig(int argc);
+int findProccessName(const char *name);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
 	CreateMutex(NULL, false, "EepyAlarmMutex");
-
-	if(GetLastError() == ERROR_ALREADY_EXISTS) {
-		printWindow("EepyAlarm is already running!");
-		exit(0);
-	}
+	bool exists = GetLastError() == ERROR_ALREADY_EXISTS;
+	HANDLE config_open = CreateEvent(NULL, true, false, "EepyAlarmConfigOpened");
 
 	int argc = 0;
 	CommandLineToArgvW(GetCommandLineW(), &argc);
 
+	if(exists) {
+		if(argc != 1) {
+			exit(0);
+		}
+		SetEvent(config_open);
+	}
+
+
+
 	initializeConfig(argc);
+	ResetEvent(config_open);
+
+	NOTIFYICONDATA notify_data;
+	notify_data.cbSize = sizeof(NOTIFYICONDATA);
+	notify_data.hWnd = ;
+	notify_data.uID = 100;
+	notify_data.uVersion = NOTIFYICONVERSION;
+	notify_data.uCallbackMessage = WM_CLICKMESSAGE;
+	notify_data.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+	wcscpy_s(notify_data.szTip, L"Open configuration");
+	notify_data.uFlags = NIF_MESSAGE NIF_ICON NIF_TIP;
+
+	Shell_NotifyIcon(NIM_ADD, &notify_data);
 
 	while(1) {
-		Sleep(30000);
+		if(WaitForSingleObject(config_open, 30000) == WAIT_OBJECT_0) {
+			exit(0);
+		} else {
+			SetEvent(config_open);
+			ResetEvent(config_open);
+		}
+
+
 		time(&current_time_t);
+		struct tm current_time_tm = *localtime(&current_time_t);
 
-		if(difftime(current_time_t, last_increment) < trigger_interval) {
-			#ifdef DEBUG
-			struct tm current_time_tm = *localtime(&current_time_t);
-			struct tm li = *localtime(&last_increment);
+		int dst_change = 0.0;
+		if(current_time_tm.tm_isdst != 0 && !dst) {
+			dst_change = 1.0;
+		} else if(current_time_tm.tm_isdst == 0 && dst) {
+			dst_change = -1.0;
+		}
 
-			char s[64];
-			snprintf(s, sizeof(s), "%d:%d, %d:%d, %f ", current_time_tm.tm_hour, current_time_tm.tm_min, li.tm_hour, li.tm_min, difftime(current_time_t, last_increment));
-			printWindow(s);
-			#endif
+		if(difftime(current_time_t, last_increment) < trigger_interval + 3600 * dst_change) {
 			continue;
 		}
+
 
 		if(difftime(current_time_t, last_increment) < trigger_interval + 10800) {
 			alarm();
@@ -80,6 +113,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 		last_increment += trigger_interval;
 		fwrite(&last_increment, sizeof(time_t), 1, config_ptr);
+
+		dst = current_time_tm.tm_isdst != 0;
+		fseek(config_ptr, sizeof(time_t) + sizeof(double) + sizeof(time_hr) + 2 * sizeof(bool), SEEK_SET);
+		fwrite(&dst, sizeof(bool), 1, config_ptr);
+
 		fclose(config_ptr);	
 	}
 
@@ -131,6 +169,7 @@ void initializeConfig(int argc) {
 		fread(&target_time, 	 sizeof(time_hr), 1, config_ptr);
 		fread(&current_tfhr, 	 sizeof(bool), 1, config_ptr);
 		fread(&target_tfhr, 	 sizeof(bool), 1, config_ptr);
+		fread(&dst, 			 sizeof(bool), 1, config_ptr);
 
 		if(argc == 1) {
 			openConfigWindow(config_path, true);
@@ -139,4 +178,28 @@ void initializeConfig(int argc) {
 
 	CoTaskMemFree(userdata);
 	fclose(config_ptr);
+}
+
+int findProccessName(const char *name) {
+	HANDLE hSnapshot;
+	PROCESSENTRY32 process_entry;
+	int pid = 0;
+	BOOL hResult;
+
+	hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	if (INVALID_HANDLE_VALUE == hSnapshot) return -1;
+
+	process_entry.dwSize = sizeof(PROCESSENTRY32);
+
+	hResult = Process32First(hSnapshot, &process_entry);
+
+	while(hResult) {
+		if(strstr(process_entry.szExeFile, name) != NULL) {
+			pid = process_entry.th32ProcessID;
+			break;
+		}
+		hResult = Process32Next(hSnapshot, &process_entry);
+	}
+	CloseHandle(hSnapshot);
+	return pid;
 }

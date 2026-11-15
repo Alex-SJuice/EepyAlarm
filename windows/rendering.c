@@ -354,7 +354,7 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
     	DrawClock(current);
     	DrawHBLine(increment);
 
-    	DrawTextEx(font, s, (Vector2){ GetMouseX() + 10, GetMouseY() }, 20, 1, GREEN);
+    	//DrawTextEx(font, s, (Vector2){ GetMouseX() + 10, GetMouseY() }, 20, 1, GREEN);
     	EndDrawing();
     }
 
@@ -379,6 +379,7 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 
 	bool current_tfhr = current.mode == TFHR;
 	bool target_tfhr = current.mode == TFHR;
+	dst = current_time_tm.tm_isdst != 0;
 
 	rewind(config_ptr);
 	fwrite(&last_increment,   sizeof(time_t), 1, config_ptr);
@@ -386,226 +387,8 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 	fwrite(&target_time,      sizeof(time_hr), 1, config_ptr);
 	fwrite(&current_tfhr, 	  sizeof(bool), 1, config_ptr);
 	fwrite(&target_tfhr, 	  sizeof(bool), 1, config_ptr);
+	fwrite(&dst, 			  sizeof(bool), 1, config_ptr);
 
-
-	#ifdef DEBUG
-	char s[256];
-	snprintf(s, sizeof(s), "%d:%d, %d:%d, %f", current_time_tm.tm_hour, current_time_tm.tm_min, target_time.tm_hour, target_time.tm_min, trigger_interval);
-	printWindow(s);
-	#endif
-}
-
-void openConfigWindowOld(wchar_t* config_path, bool prevAvailable) {
-	int inputs[5] = {0};
-    int buffer_position[5] = {0};
-    char input_buffer[5][16];
-
-    Time_mode time_mode[2] = { TFHR, TFHR };
-
-    bool state_change = false;
-    bool saved = false;
-    User_state state = IDLE;
-    User_state prev_state = IDLE;
-
-    if(prevAvailable) {
-    	inputs[0] = target_time.tm_hour;
-    	inputs[1] = target_time.tm_min;
-
-    	struct tm current_time = *localtime(&last_increment);
-    	inputs[2] = current_time.tm_hour;
-    	inputs[3] = current_time.tm_min;
-
-    	inputs[4] = (86400 - trigger_interval) / 60;
-
-    	for(int i = 0; i < 5; i++) {
-	    	buffer_position[i] = snprintf(input_buffer[i], sizeof(input_buffer[i]), "%d", inputs[i]);
-	    	for(int j = buffer_position[i]; j < 16; j++) {
-	    		input_buffer[i][j] = '\0';
-	    	}
-	    }
-    } else {
-    	for(int i = 0; i < 5; i++) {
-	    	buffer_position[i] = 0;
-	    	for(int j = 0; j < 16; j++) {
-	    		input_buffer[i][j] = '\0';
-	    	}
-	    }
-    }
-
-
-	InitWindow(500, 500, "EepyAlarm Configuration");
-    SetTargetFPS(60);
-
-    Image icon = LoadImage("icon.png");
-    SetWindowIcon(icon);
-
-    while (!WindowShouldClose()) {
-    	if(IsMouseButtonPressed(0) || IsMouseButtonPressed(1)) {
-    		int x = GetMouseX();
-    		int y = GetMouseY();
-    		if(y >= 100 && y <= 120) {
-    			if(x >= 150 && x <= 160) {
-    				time_mode[0] = AM;
-    			} else if(x >= 170 && x <= 180) {
-    				time_mode[0] = PM;
-    			} else if(x >= 190 && x <= 200) {
-    				time_mode[0] = TFHR;
-    			}
-    		} else if(y >= 130 && y <= 150) {
-    			prev_state = state;
-    			state = TARGET_HOUR;
-    			state_change = true;
-    		} else if (y >= 160 && y <= 180) {
-    			prev_state = state;
-    			state = TARGET_MIN;
-    			state_change = true;
-    		} else if(y >= 200 && y <= 220) {
-    			if(x >= 150 && x <= 160) {
-    				time_mode[1] = AM;
-    			} else if(x >= 170 && x <= 180) {
-    				time_mode[1] = PM;
-    			} else if(x >= 190 && x <= 200) {
-    				time_mode[1] = TFHR;
-    			}
-    		} else if (y >= 230 && y <= 250) {
-    			prev_state = state;
-    			state = CURRENT_HOUR;
-    			state_change = true;
-    		} else if (y >= 260 && y <= 280) {
-    			prev_state = state;
-    			state = CURRENT_MIN;
-    			state_change = true;
-    		} else if (y >= 300 && y <= 320) {
-    			prev_state = state;
-    			state = INCREMENT;
-    			state_change = true;
-    		} else {
-    			prev_state = state;
-    			state = IDLE;
-    			state_change = true;
-    		}
-    	}
-
-    	if(state != IDLE) {
-			char c = GetCharPressed();
-			if(IsKeyPressed(KEY_BACKSPACE) && buffer_position[state] > 0) {
-				for(int i = buffer_position[state]-1; i < 16; i++) {
-					input_buffer[state][i] = '\0';
-				}
-				buffer_position[state]--;
-				saved = true;
-			} else if(buffer_position[state] < 8 && c != 0 && c - '0' > -1 && c - '0' < 10) {
-	    		input_buffer[state][buffer_position[state]] = c;
-	    		buffer_position[state]++;
-	    		saved = true;
-	    	}	    	
-	    }
-
-	    if(state_change) {
-	    	inputs[prev_state] = atoi(input_buffer[prev_state]);
-	    	state_change = false;
-	    	saved = false;
-	    }
-
-    	BeginDrawing();
-
-    	ClearBackground(RAYWHITE);
-    	DrawText("Target time: ", 100, 100, 20, BLACK);
-    	DrawText("AM  PM  24HR", 150, 100, 20, BLACK);
-    	DrawText("Current time: ", 100, 200, 20, BLACK);
-    	DrawText("AM  PM  24HR", 150, 200, 20, BLACK);
-    	DrawText("Close the window after saving settings.", 50, 400, 20, RED);
-    	DrawText("Invalid settings will be set to zero upon", 50, 420, 20, RED);
-    	DrawText("closing the window.", 50, 440, 20, RED);
-
-    	switch(state) {
-    	case TARGET_HOUR:
-    		DrawRectangleLines(95, 125, 300, 30, DARKGRAY);
-    		break;
-    	case TARGET_MIN:
-    		DrawRectangleLines(95, 155, 300, 30, DARKGRAY);
-    		break;
-    	case CURRENT_HOUR:
-    		DrawRectangleLines(95, 225, 300, 30, DARKGRAY);
-    		break;
-    	case CURRENT_MIN:
-    		DrawRectangleLines(95, 255, 300, 30, DARKGRAY);
-    		break;
-    	case INCREMENT:
-    		DrawRectangleLines(95, 295, 300, 30, DARKGRAY);
-    		break;
-    	default:
-    	}
-
-    	switch(time_mode[0]) {
-    	case AM:
-    		DrawRectangleLines(145, 95, 30, 30, DARKGRAY);
-    		break;
-    	case PM:
-    		DrawRectangleLines(165, 95, 30, 30, DARKGRAY);
-    		break;
-    	case TFHR:
-    		DrawRectangleLines(185, 95, 30, 30, DARKGRAY);
-    		break;
-    	}
-
-    	switch(time_mode[1]) {
-    	case AM:
-    		DrawRectangleLines(145, 195, 30, 30, DARKGRAY);
-    		break;
-    	case PM:
-    		DrawRectangleLines(165, 195, 30, 30, DARKGRAY);
-    		break;
-    	case TFHR:
-    		DrawRectangleLines(185, 195, 30, 30, DARKGRAY);
-    		break;
-    	}
-
-
-    	char num[64];
-    	snprintf(num, sizeof(num), "Hour: %s", input_buffer[0]);
-    	DrawText(num, 100, 130, 20, BLACK);
-    		
-		snprintf(num, sizeof(num), "Minute: %s", input_buffer[1]);
-   		DrawText(num, 100, 160, 20, BLACK);
-		
-		snprintf(num, sizeof(num), "Hour: %s", input_buffer[2]);
-		DrawText(num, 100, 230, 20, BLACK);
- 
-		snprintf(num, sizeof(num), "Minute: %s", input_buffer[3]);
-		DrawText(num, 100, 260, 20, BLACK);
-    		
-		snprintf(num, sizeof(num), "Daily increment (minutes): %s", input_buffer[4]);
-    	DrawText(num, 100, 300, 20, BLACK);
-
-    	if(!saved) {
-    		DrawText("Saved!", 300, 200, 50, GREEN);
-    	}
-
-    	EndDrawing();
-    }
-
-    UnloadImage(icon);
-    CloseWindow();	
-
-    target_time.tm_hour = inputs[0];
-	target_time.tm_min = inputs[1];
-
-	time(&current_time_t);
-	struct tm current_time_tm = *localtime(&current_time_t);
-	current_time_tm.tm_hour = inputs[2];
-	current_time_tm.tm_min = inputs[3];
-	if(difftime(mktime(&current_time_tm), current_time_t) > 0) {
-		--current_time_tm.tm_mday;
-	}
-	last_increment = mktime(&current_time_tm);
-
-	trigger_interval = 86400 - inputs[4] * 60; //seconds
-
-	rewind(config_ptr);
-	fwrite(&last_increment, sizeof(time_t), 1, config_ptr);
-	fwrite(&trigger_interval, sizeof(double), 1, config_ptr);
-	fwrite(&target_time, sizeof(time_hr), 1, config_ptr);
 
 	#ifdef DEBUG
 	char s[256];
@@ -652,28 +435,28 @@ void DrawHBLine(HBNumber_line line) {
 		line.y - 10.0, (line.range.y - line.range.x) / 6.0, 50.0, (Color) { 0, 29, 53, 255 });
 }
 
-void DrawHBLineOld(HBNumber_line line) {
-	DrawLineEx((Vector2) { line.range.x, line.y }, (Vector2) { line.range.y, line.y }, 5.0, WHITE);
-	float h = line.ticks / 3.0;
-	float a = (line.selected - line.range.x + 1) / (line.range.y - line.range.x) * (line.ticks - 1);
-	float correction = (10.0 - (3.0 / 8.0 * h) * (
-    		exp(-0.1 * pow(-a, 2.0))
-    + 3.0 * exp(-0.1 * pow(h - a, 2.0))
-   	+ 3.0 * exp(-0.1 * pow(2.0 * h - a, 2.0))
-    	+ exp(-0.1 * pow(line.ticks - a, 2.0))
-    	)) / line.ticks;
-	float running = line.range.y;
-    for(int i = 0; i < line.ticks; i++) {
-    	DrawLineEx((Vector2) { running, line.y - 10.0 }, (Vector2) { running, line.y + 10.0 }, 2, WHITE);	
-    	running -= (line.ticks * exp(-0.1 * pow(i - a, 2.0)) + correction) / 10.0;
-    }
-    DrawTriangle(
-    		(Vector2) { line.selected - 7.5, line.y - 20 },
-    		(Vector2) { line.selected, line.y - 10 }, 
-    		(Vector2) { line.selected + 7.5, line.y - 20 },
-    		WHITE);
-    DrawRectangle(line.selected - 7.5, line.y - 35, 15, 15, WHITE);
-}
+// void DrawHBLineOld(HBNumber_line line) {
+// 	DrawLineEx((Vector2) { line.range.x, line.y }, (Vector2) { line.range.y, line.y }, 5.0, WHITE);
+// 	float h = line.ticks / 3.0;
+// 	float a = (line.selected - line.range.x + 1) / (line.range.y - line.range.x) * (line.ticks - 1);
+// 	float correction = (10.0 - (3.0 / 8.0 * h) * (
+//     		exp(-0.1 * pow(-a, 2.0))
+//     + 3.0 * exp(-0.1 * pow(h - a, 2.0))
+//    	+ 3.0 * exp(-0.1 * pow(2.0 * h - a, 2.0))
+//     	+ exp(-0.1 * pow(line.ticks - a, 2.0))
+//     	)) / line.ticks;
+// 	float running = line.range.y;
+//     for(int i = 0; i < line.ticks; i++) {
+//     	DrawLineEx((Vector2) { running, line.y - 10.0 }, (Vector2) { running, line.y + 10.0 }, 2, WHITE);	
+//     	running -= (line.ticks * exp(-0.1 * pow(i - a, 2.0)) + correction) / 10.0;
+//     }
+//     DrawTriangle(
+//     		(Vector2) { line.selected - 7.5, line.y - 20 },
+//     		(Vector2) { line.selected, line.y - 10 }, 
+//     		(Vector2) { line.selected + 7.5, line.y - 20 },
+//     		WHITE);
+//     DrawRectangle(line.selected - 7.5, line.y - 35, 15, 15, WHITE);
+// }
 
 void DrawClock(Clock clock) {
 

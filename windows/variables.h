@@ -20,3 +20,5 @@ extern wchar_t config_path[MAX_PATH];
 
 extern bool current_tfhr;
 extern bool target_tfhr;
+
+extern bool dst;

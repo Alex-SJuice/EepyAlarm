@@ -68,15 +68,15 @@ Make sure you have raylib and some form of gcc installed.
 3.0:
 - better font
 - 12hr support (Currently uses 24hr)
+- nicer setup GUI
+- DST support(?)
+- kill previous instance instead of failing to launch
 
 3.0 (potential):
 - notification tray icon
 	- option in the tray icon to set custom ring time today
 	- option in tray icon to edit settings
-- nicer setup GUI
 - custom, user generated alarms
-- kill previous instance instead of failing to launch
-- DST support
 
 4.0 (potential):
 - support for Linux

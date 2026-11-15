@@ -58,10 +58,18 @@ int nearestPositionClock(float angle, float mod) {
 	return (int)(ang * mod / 2.0 / M_PI + 0.5);
 }
 
-int nearestPositionLine(float x, HBNumber_line line) {
-	return (int)((x - line.range.x + 1) / (line.range.y - line.range.x) * (line.ticks - 1) + 0.5);
+int nearestPositionLine(float angle, HBNumber_line line) {
+	float position = angle * line.ticks / 2.0 / M_PI;
+	return (int)(position + 0.5);
 }
 
+//now returns angle on imaginary cylinder
 float getPosition(int tick, HBNumber_line line) {
-	return (float)tick / (line.ticks - 1) * (line.range.y - line.range.x) + line.range.x;
+	float angle = (tick - line.selected) * 2.0 * M_PI / line.ticks;
+	if(angle < -M_PI / 2.0) {
+		angle += 2.0 * M_PI;
+	} else if (angle >= M_PI / 2.0){
+		angle -= 2.0 * M_PI;
+	}
+	return angle;
 }

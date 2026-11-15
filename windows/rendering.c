@@ -91,7 +91,7 @@ void alarm() {
 void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 	Clock current =  { { 180, 180 }, 120.0, getAngle(0, 12.0f), getAngle(0, 60.0f), AM };
     Clock target = { { 180, 520 }, 120.0, getAngle(0, 12.0f), getAngle(0, 60.0f), AM };
-    HBNumber_line increment = { { 330.0, 655.0}, 530.0 , 100 , 0 };
+    HBNumber_line increment = { { 330.0, 655.0 }, 530, 100 , 0.0 };
     increment.selected = getPosition(0, increment);
     Rectangle preview = { 430.0, 410.0, 100.0, 40.0 };
 
@@ -126,7 +126,7 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 	    current.minute = getAngle(current_time.tm_min, 60);
 
     	inputs[4] = (86400 - trigger_interval) / 60;
-    	increment.selected = getPosition(inputs[4], increment);
+    	increment.selected = inputs[4];
     }
 
     User_state state = IDLE;
@@ -219,7 +219,9 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 					state = TARGET_HOUR;
 					change = true;
 				}
-				if(CheckCollisionPointRec((Vector2) { GetMouseX(), GetMouseY() }, (Rectangle) { increment.selected - 7.5, increment.y - 35, 15, 20 })) {
+				if(CheckCollisionPointRec((Vector2) { GetMouseX(), GetMouseY() }, (Rectangle) { 
+					increment.range.x + (increment.range.y - increment.range.x) / 6.0, 
+					increment.y - 10.0, (increment.range.y - increment.range.x) * 2.0 / 3.0, 50.0 })) {
 					state = INCREMENT;
 				}
 
@@ -274,8 +276,9 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 				inputs[3] = nearestPositionClock(current.minute - 2.0 * PI, 60);
 				break;
 			case INCREMENT:
-				increment.selected = getPosition(nearestPositionLine(increment.selected, increment), increment);
-				inputs[4] = nearestPositionLine(increment.selected, increment);
+				inputs[4] = (int)(increment.selected + 0.5);
+				increment.selected = (int)(increment.selected + 0.5);
+				
 				break;
 			}
 			change = false;
@@ -296,7 +299,12 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 			current.minute = atan2((double)(GetMouseY() - current.center.y), (double)(GetMouseX() - current.center.x));
 			break;
 		case INCREMENT:
-			increment.selected = floatClamp(GetMouseX(), increment.range.x, increment.range.y);
+			increment.selected -= GetMouseDelta().x / 45.0;
+			if(increment.selected < 0.0) {
+				increment.selected += increment.ticks;
+			} else if(increment.selected > increment.ticks) {
+				increment.selected -= increment.ticks;
+			}
 		default:
 			break;
 		}
@@ -306,7 +314,7 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
 
     	DrawTextEx(font, "Current Time", (Vector2) { 110.0, 15.0 }, 30, 1, WHITE);
     	DrawTextEx(font, "Target Time", (Vector2) { 115.0, 655.0 }, 30, 1, WHITE);
-    	DrawTextEx(font, "Increment", (Vector2) { 430.0, 580.0 }, 30, 1, WHITE);
+    	DrawTextEx(font, "Increment", (Vector2) { 440.0, 590.0 }, 30, 1, WHITE);
     	DrawTextEx(font, "Alarm", (Vector2) { 320.0, 360.0 }, 30, 1, WHITE);
     	DrawTextPro(font, "EepyAlarm", (Vector2) { 320.0, 60.0 }, (Vector2) { 0.0, 0.0 }, 0, 50, 1, WHITE);
     	DrawTextureEx(icon_texture, (Vector2) { 400.0, 60.0 }, 0.0, 0.5, WHITE);
@@ -346,33 +354,7 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
     	DrawClock(current);
     	DrawHBLine(increment);
 
-    	char num[3];
-    	if(nearestPositionLine(increment.selected, increment) > 0) {
-	    	snprintf(num, sizeof(num), "%d", nearestPositionLine(increment.selected, increment) - 1);
-	    	DrawTextEx(font, num, 
-	    		(Vector2) { getPosition(
-	    			nearestPositionLine(
-	    				increment.selected, increment) - 1, increment) - 
-	    				(increment.range.y - increment.range.x) / ((float)increment.ticks - 1) / 2.0, increment.y + 20 },
-	    		20, 1, WHITE);
-	    }
-	    if(nearestPositionLine(increment.selected, increment) < nearestPositionLine(increment.range.y, increment)) {
-	    	snprintf(num, sizeof(num), "%d", nearestPositionLine(increment.selected, increment) + 1);
-	    	DrawTextEx(font, num, 
-	    		(Vector2) { getPosition(
-	    			nearestPositionLine(
-	    				increment.selected, increment) + 1, increment) - 
-	    				(increment.range.y - increment.range.x) / ((float)increment.ticks - 1) / 2.0, increment.y + 20 },
-	    		20, 1, WHITE);
-	    }
-	    snprintf(num, sizeof(num), "%d", nearestPositionLine(increment.selected, increment));
-	    	DrawTextEx(font, num, 
-	    		(Vector2) { getPosition(
-	    			nearestPositionLine(
-	    				increment.selected, increment), increment) - 
-	    				(increment.range.y - increment.range.x) / ((float)increment.ticks - 1) / 2.0, increment.y + 20 },
-	    		20, 1, WHITE);
-    	//DrawTextEx(font, s, (Vector2){ GetMouseX() + 10, GetMouseY() }, 20, 1, GREEN);
+    	DrawTextEx(font, s, (Vector2){ GetMouseX() + 10, GetMouseY() }, 20, 1, GREEN);
     	EndDrawing();
     }
 
@@ -633,6 +615,44 @@ void openConfigWindowOld(wchar_t* config_path, bool prevAvailable) {
 }
 
 void DrawHBLine(HBNumber_line line) {
+	DrawRectangle(
+		line.range.x + (line.range.y - line.range.x) / 6.0, 
+		line.y - 10.0, (line.range.y - line.range.x) * 2.0 / 3.0, 50.0, WHITE);
+	DrawTriangle(
+    		(Vector2) { line.range.x + (line.range.y - line.range.x) / 2 - 7.5, line.y - 20 },
+    		(Vector2) { line.range.x + (line.range.y - line.range.x) / 2, line.y - 10 }, 
+    		(Vector2) { line.range.x + (line.range.y - line.range.x) / 2 + 7.5, line.y - 20 },
+    		WHITE);
+	DrawTriangle(
+			(Vector2) { line.range.x + (line.range.y - line.range.x) / 2, line.y + 40 }, 
+    		(Vector2) { line.range.x + (line.range.y - line.range.x) / 2 - 7.5, line.y + 50 },
+    		(Vector2) { line.range.x + (line.range.y - line.range.x) / 2 + 7.5, line.y + 50 },
+    		WHITE);
+	char num[3];
+	for(int i = floorf(line.selected) - 2.0; i < floorf(line.selected) + 4.0; i++) {
+		int index = i;
+		if(i < 0) {
+			index += line.ticks;
+		} else if(i >= line.ticks) {
+			index -= line.ticks;
+		}
+		float position = getPosition(index, line);
+
+		snprintf(num, sizeof(num), "%d", index);
+		DrawTextEx(font, num, 
+			(Vector2) { 
+				sin(position) * 700.0
+				 + line.range.x + (line.range.y - line.range.x) / 2
+				 - MeasureTextEx(font, num, 40.0, 1.0).x / 2.0, line.y - 5.0 },
+			 40.0, 1.0, BLACK);
+	}
+	DrawRectangle(line.range.x, line.y - 10.0, (line.range.y - line.range.x) / 6.0, 50.0, (Color) { 0, 29, 53, 255 });
+	DrawRectangle(
+		line.range.x + (line.range.y - line.range.x) * 5.0 / 6.0, 
+		line.y - 10.0, (line.range.y - line.range.x) / 6.0, 50.0, (Color) { 0, 29, 53, 255 });
+}
+
+void DrawHBLineOld(HBNumber_line line) {
 	DrawLineEx((Vector2) { line.range.x, line.y }, (Vector2) { line.range.y, line.y }, 5.0, WHITE);
 	float h = line.ticks / 3.0;
 	float a = (line.selected - line.range.x + 1) / (line.range.y - line.range.x) * (line.ticks - 1);
@@ -656,6 +676,7 @@ void DrawHBLine(HBNumber_line line) {
 }
 
 void DrawClock(Clock clock) {
+
 	DrawCircleV(clock.center, clock.radius, RAYWHITE);
 	DrawCircleV(clock.center, 5.0, BLACK);
 

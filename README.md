@@ -76,7 +76,22 @@ Make sure you have raylib and some form of gcc installed.
 - notification tray icon
 	- option in the tray icon to set custom ring time today
 	- option in tray icon to edit settings
+	- option in tray icon to kill instance
+	- option to not ring today
+	- option to check for updates
 - custom, user generated alarms
+	- so custom alarms have a few ways of being implemented
+	1. image or video is played
+		- easiest, but kinda lame. no interactive alarms
+	2. json or similar format file basically psuedo lang that instructs how to draw the alarm
+		- crazy complicated
+	3. run provided executable or python script
+		- most customizable, but hard for anyone who isn't a hyper nerd
+	4. custom alarm designer
+		- haha no
+	5. set of premade alarms that user can choose between
+		- LAAAAAAAAAAAAAMMMMMMMMMME
+	quite a few options, but none of them seem particularly attractive. gonna get some feed back on this
 
 4.0 (potential):
 - support for Linux

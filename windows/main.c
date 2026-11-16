@@ -11,7 +11,7 @@
 #include <combaseapi.h>
 #include <windows.h>
 #include <tlhelp32.h>
-#define WM_CLICKMESSAGE (WM_USER + 1)
+#define WM_ICON (WM_USER + 1)
 #define MAINICON 1
 
 #define INITGUID
@@ -36,6 +36,20 @@ bool dst;
 void initializeConfig(int argc);
 int findProccessName(const char *name);
 
+LRESULT Wndproc(
+	HWND hwnd,
+	UINT uMsg,
+	WPARAM wParam, 
+	LPARAM lParam) {
+	switch(uMsg) {
+	case WM_ICON:
+		printWindow("UwU");
+		return 0;
+	default:
+		return DefWindowProc(hwnd, uMsg, wParam, lParam);
+	}
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
 	CreateMutex(NULL, false, "EepyAlarmMutex");
 	bool exists = GetLastError() == ERROR_ALREADY_EXISTS;
@@ -51,22 +65,32 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		SetEvent(config_open);
 	}
 
-
-
 	initializeConfig(argc);
 	ResetEvent(config_open);
 
-	NOTIFYICONDATA notify_data;
+	NOTIFYICONDATA notify_data = {};
+	
+	WNDCLASSEX window_class = {};
+	window_class.cbSize = sizeof(WNDCLASSEX);
+	window_class.lpszClassName = "trayClass";
+	window_class.hIcon = LoadIcon(hInstance, "MAINICON");
+	window_class.hInstance = hInstance;
+	window_class.lpfnWndProc = Wndproc;
+	window_class.style = 0;
+	RegisterClassEx(&window_class);
+
 	notify_data.cbSize = sizeof(NOTIFYICONDATA);
-	notify_data.hWnd = ;
+	notify_data.hWnd = CreateWindowEx(0, "trayClass", "tray", 0, 0, 0, 0, 0, NULL, NULL, hInstance, NULL);
 	notify_data.uID = 100;
-	notify_data.uVersion = NOTIFYICONVERSION;
-	notify_data.uCallbackMessage = WM_CLICKMESSAGE;
-	notify_data.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-	wcscpy_s(notify_data.szTip, L"Open configuration");
-	notify_data.uFlags = NIF_MESSAGE NIF_ICON NIF_TIP;
+	notify_data.uVersion = NOTIFYICON_VERSION;
+	notify_data.uCallbackMessage = WM_ICON;
+	notify_data.hIcon = LoadIcon(hInstance, "MAINICON");
+
+	strncpy(notify_data.szTip, "Open configuration", sizeof(notify_data.szTip));
+	notify_data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
 
 	Shell_NotifyIcon(NIM_ADD, &notify_data);
+	Shell_NotifyIcon(NIM_SETVERSION, &notify_data);
 
 	while(1) {
 		if(WaitForSingleObject(config_open, 30000) == WAIT_OBJECT_0) {

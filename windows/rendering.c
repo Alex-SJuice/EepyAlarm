@@ -316,6 +316,7 @@ void openConfigWindow(wchar_t* config_path, bool prevAvailable) {
     	DrawTextEx(font, "Target Time", (Vector2) { 115.0, 655.0 }, 30, 1, WHITE);
     	DrawTextEx(font, "Increment", (Vector2) { 440.0, 590.0 }, 30, 1, WHITE);
     	DrawTextEx(font, "Alarm", (Vector2) { 320.0, 360.0 }, 30, 1, WHITE);
+    	DrawTextEx(font, "Default Alarm tm r cc", (Vector2) { 400.0, 360.0 }, 30, 1, WHITE);
     	DrawTextPro(font, "EepyAlarm", (Vector2) { 320.0, 60.0 }, (Vector2) { 0.0, 0.0 }, 0, 50, 1, WHITE);
     	DrawTextureEx(icon_texture, (Vector2) { 400.0, 60.0 }, 0.0, 0.5, WHITE);
 
@@ -435,29 +436,6 @@ void DrawHBLine(HBNumber_line line) {
 		line.y - 10.0, (line.range.y - line.range.x) / 6.0, 50.0, (Color) { 0, 29, 53, 255 });
 }
 
-// void DrawHBLineOld(HBNumber_line line) {
-// 	DrawLineEx((Vector2) { line.range.x, line.y }, (Vector2) { line.range.y, line.y }, 5.0, WHITE);
-// 	float h = line.ticks / 3.0;
-// 	float a = (line.selected - line.range.x + 1) / (line.range.y - line.range.x) * (line.ticks - 1);
-// 	float correction = (10.0 - (3.0 / 8.0 * h) * (
-//     		exp(-0.1 * pow(-a, 2.0))
-//     + 3.0 * exp(-0.1 * pow(h - a, 2.0))
-//    	+ 3.0 * exp(-0.1 * pow(2.0 * h - a, 2.0))
-//     	+ exp(-0.1 * pow(line.ticks - a, 2.0))
-//     	)) / line.ticks;
-// 	float running = line.range.y;
-//     for(int i = 0; i < line.ticks; i++) {
-//     	DrawLineEx((Vector2) { running, line.y - 10.0 }, (Vector2) { running, line.y + 10.0 }, 2, WHITE);	
-//     	running -= (line.ticks * exp(-0.1 * pow(i - a, 2.0)) + correction) / 10.0;
-//     }
-//     DrawTriangle(
-//     		(Vector2) { line.selected - 7.5, line.y - 20 },
-//     		(Vector2) { line.selected, line.y - 10 }, 
-//     		(Vector2) { line.selected + 7.5, line.y - 20 },
-//     		WHITE);
-//     DrawRectangle(line.selected - 7.5, line.y - 35, 15, 15, WHITE);
-// }
-
 void DrawClock(Clock clock) {
 
 	DrawCircleV(clock.center, clock.radius, RAYWHITE);
@@ -526,6 +504,11 @@ void printWindow(char *fmt, ...) {
 	}
 	vsprintf(str, fmt, ap);
 	va_end(ap);
+
+	char *n = NULL;
+	while((n = strchr(str, '\n')) != NULL) {
+		*n = ' ';
+	}
 
 	InitWindow(500, 40, "Message from EepyAlarm");
 	SetTargetFPS(60);
